@@ -1,24 +1,46 @@
-import { useState } from "react";
-import "../App.css";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 function App() {
-  const [count, setCount] = useState(0);
-
   return (
-    <div id="w-full h-full">
-      <h1 className="text-red-500 text-xl">Vite + React</h1>
-      <div className="card">
-        <Button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </Button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
+    <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-8">
+      <div className="mx-auto max-w-4xl">
+        <h1 className="mb-8 text-4xl font-bold text-gray-900">Dashboard</h1>
+
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Welcome</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600">
+                Welcome to your dashboard. This is a simple landing page.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600">
+                System status: <span className="text-green-600">Online</span>
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600">
+                Coming soon: quick actions and shortcuts.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </div>
   );
 }

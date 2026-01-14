@@ -57,6 +57,10 @@ pub fn create_web_service() -> App<
         .wrap(Compress::default())
         .wrap(Logger::default())
         .route("/", web::get().to(index))
+        .route("/login", web::get().to(login))
+        .route("/signup", web::get().to(signup))
+        .route("/forgot-password", web::get().to(forgot_password))
+        .route("/reset-password", web::get().to(reset_password))
         .service(
             web::scope("/version")
                 .wrap(VersionMiddleware::new("1".to_string()))
@@ -86,6 +90,38 @@ async fn index(req: HttpRequest) -> impl Responder {
         InertiaResponder::new("App", props).respond_to(&req)
     } else {
         response_with_html(&req, props, "App".to_string())
+    }
+}
+
+async fn login(req: HttpRequest) -> impl Responder {
+    if req.headers().contains_key("x-inertia") {
+        InertiaResponder::new("Login", Empty).respond_to(&req)
+    } else {
+        response_with_html(&req, Empty, "Login".to_string())
+    }
+}
+
+async fn signup(req: HttpRequest) -> impl Responder {
+    if req.headers().contains_key("x-inertia") {
+        InertiaResponder::new("Signup", Empty).respond_to(&req)
+    } else {
+        response_with_html(&req, Empty, "Signup".to_string())
+    }
+}
+
+async fn forgot_password(req: HttpRequest) -> impl Responder {
+    if req.headers().contains_key("x-inertia") {
+        InertiaResponder::new("ForgotPassword", Empty).respond_to(&req)
+    } else {
+        response_with_html(&req, Empty, "ForgotPassword".to_string())
+    }
+}
+
+async fn reset_password(req: HttpRequest) -> impl Responder {
+    if req.headers().contains_key("x-inertia") {
+        InertiaResponder::new("ResetPassword", Empty).respond_to(&req)
+    } else {
+        response_with_html(&req, Empty, "ResetPassword".to_string())
     }
 }
 
