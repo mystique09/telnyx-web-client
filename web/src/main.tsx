@@ -1,5 +1,6 @@
 import { createInertiaApp } from "@inertiajs/react";
 import "./index.css";
+
 import { createRoot } from "react-dom/client";
 
 createInertiaApp({
