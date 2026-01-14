@@ -59,7 +59,7 @@ function ResetPassword() {
 
   if (isSuccess) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
+      <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 p-4">
         <Card className="w-full max-w-md shadow-lg">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center space-y-4 text-center">
@@ -82,10 +82,12 @@ function ResetPassword() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Reset your password</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            Reset your password
+          </CardTitle>
           <CardDescription>
             Enter your new password below to complete the reset process.
           </CardDescription>
