@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-workspace-hack = { path = "../../crates/workspace-hack" }
+workspace-hack = { version = "0.1", path = "../workspace-hack" }
 infrastructure = { path = "../../crates/infrastructure" }
