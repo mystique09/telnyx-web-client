@@ -1,0 +1,21 @@
+[package]
+name = "web"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+workspace-hack = { path = "../../crates/workspace-hack" }
+
+tracing.workspace = true
+actix.workspace = true
+actix-cors.workspace = true
+actix-governor.workspace = true
+actix-web.workspace = true
+actix-embed.workspace = true
+actix-multipart.workspace = true
+actix-inertia.workspace = true
+actix-files.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+bon.workspace = true

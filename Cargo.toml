@@ -1,9 +1,15 @@
-[package]
-name = "telny-web-client"
-version = "0.1.0"
-edition = "2024"
+[workspace]
+members = [
+    "crates/web",
+    "crates/infrastructure",
+    "crates/workspace-hack",
+    "bin/web",
+    "crates/domain",
+    "crates/application",
+]
+resolver = "3"
 
-[dependencies]
+[workspace.dependencies]
 dotenvy = "0.15.7"
 eyre = "0.6.12"
 color-eyre = "0.6.5"
@@ -23,7 +29,4 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 thiserror = "2.0.17"
 tokio = { version = "1.49.0", default-features = false, features = ["macros"] }
-
-[[bin]]
-name = "server"
-path = "src/main.rs"
+bon = "3.8.2"

@@ -1,19 +1,7 @@
-use serde::{Serialize, Serializer, ser::SerializeMap};
-
-pub struct Empty;
-
-impl Serialize for Empty {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let map = serializer.serialize_map(Some(0))?;
-        map.end()
-    }
-}
+use serde::Serialize;
 
 #[derive(serde::Serialize)]
-pub struct DataPage<T>
+pub(crate) struct DataPage<T>
 where
     T: Serialize,
 {

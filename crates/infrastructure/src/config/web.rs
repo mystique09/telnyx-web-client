@@ -1,12 +1,6 @@
 use std::net::Ipv4Addr;
 
-#[derive(Debug, thiserror::Error)]
-pub enum ConfigError {
-    #[error("Env var {0} not found")]
-    EnvVarNotFound(String),
-    #[error("Env var {0} not valid")]
-    EnvVarNotValid(String),
-}
+use crate::config::ConfigError;
 
 pub struct WebConfig {
     pub host: Ipv4Addr,

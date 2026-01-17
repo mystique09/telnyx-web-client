@@ -5,4 +5,4 @@ default:
 
 run:
     mprocs "npm run dev --prefix ./web" \
-    "cargo run --bin server"
+    "cargo run --bin web-server"

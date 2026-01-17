@@ -1,13 +1,9 @@
-mod config;
-mod server;
-mod types;
-
 use actix_web::{HttpServer, dev::ServerHandle, rt::signal};
+use infrastructure::config::web::WebConfig;
 use tracing::{info, subscriber::set_global_default};
 use tracing_log::LogTracer;
 use tracing_subscriber::{EnvFilter, Registry, layer::SubscriberExt};
-
-use crate::{config::WebConfig, server::create_web_service};
+use web::server::create_web_service;
 
 #[actix_web::main]
 async fn main() -> eyre::Result<()> {

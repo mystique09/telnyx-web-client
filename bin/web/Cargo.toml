@@ -1,0 +1,20 @@
+[package]
+name = "web-server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+workspace-hack = { path = "../../crates/workspace-hack" }
+infrastructure = { path = "../../crates/infrastructure" }
+web = { path = "../../crates/web" }
+
+dotenvy.workspace = true
+eyre.workspace = true
+color-eyre.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tracing-log.workspace = true
+tracing-error.workspace = true
+tokio.workspace = true
+actix.workspace = true
+actix-web.workspace = true

@@ -1,0 +1,8 @@
+[package]
+name = "application"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+workspace-hack = { path = "../../crates/workspace-hack" }
+infrastructure = { path = "../../crates/infrastructure" }
