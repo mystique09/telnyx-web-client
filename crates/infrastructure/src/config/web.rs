@@ -2,6 +2,7 @@ use std::net::Ipv4Addr;
 
 use crate::config::ConfigError;
 
+#[derive(Debug, bon::Builder)]
 pub struct WebConfig {
     pub host: Ipv4Addr,
     pub port: u16,
@@ -19,7 +20,7 @@ impl WebConfig {
             .parse::<u16>()
             .map_err(|_| ConfigError::EnvVarNotValid("PORT".to_string()))?;
 
-        Ok(Self { host, port })
+        Ok(Self::builder().host(host).port(port).build())
     }
 
     pub fn addrs(&self) -> String {

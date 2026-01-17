@@ -1,3 +1,4 @@
+pub mod database;
 pub mod web;
 
 #[derive(Debug, thiserror::Error)]

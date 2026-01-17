@@ -1,5 +1,8 @@
 use actix_web::{HttpServer, dev::ServerHandle, rt::signal};
-use infrastructure::config::web::WebConfig;
+use infrastructure::{
+    config::{database::DatabaseConfig, web::WebConfig},
+    database::{migrator::migrator, pool::create_db_pool},
+};
 use tracing::{info, subscriber::set_global_default};
 use tracing_log::LogTracer;
 use tracing_subscriber::{EnvFilter, Registry, layer::SubscriberExt};
@@ -12,6 +15,10 @@ async fn main() -> eyre::Result<()> {
     dotenvy::dotenv()?;
 
     let config = WebConfig::from_env()?;
+    let db_config = DatabaseConfig::from_env()?;
+
+    let _pool = create_db_pool(&db_config.url).await?;
+    let _ = migrator(&db_config.url).await;
 
     let server = HttpServer::new(move || create_web_service())
         .workers(5)
