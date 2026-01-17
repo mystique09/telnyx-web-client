@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: telnyx-web-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: telnyx-web-db
+    ports:
+      - "${POSTGRES_PORT:-5438}:5432"
+    volumes:
+      - telnyx-web-postgres:/var/lib/postgresql/data
+    networks:
+      - telnyx-web-network
+
+  redis:
+    image: redis:8.2.0-alpine
+    container_name: telnyx-web-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - telnyx-web-network
+    volumes:
+      - telnyx-web-redis:/data
+
+networks:
+  telnyx-web-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.32.0.0/16
+          gateway: 172.32.0.0
+
+volumes:
+  telnyx-web-postgres:
+  telnyx-web-redis:
