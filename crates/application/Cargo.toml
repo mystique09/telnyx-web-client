@@ -10,3 +10,6 @@ infrastructure = { path = "../../crates/infrastructure" }
 
 bon.workspace = true
 thiserror.workspace = true
+garde.workspace = true
+time.workspace = true
+uuid.workspace = true

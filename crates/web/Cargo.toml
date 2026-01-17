@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 workspace-hack = { version = "0.1", path = "../workspace-hack" }
+application = { path = "../application" }
 
 tracing.workspace = true
 actix.workspace = true
@@ -19,3 +20,4 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 bon.workspace = true
+uuid.workspace = true
