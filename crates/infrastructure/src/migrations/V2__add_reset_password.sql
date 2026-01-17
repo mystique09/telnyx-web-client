@@ -3,7 +3,8 @@ CREATE TABLE
         id UUID NOT NULL PRIMARY KEY,
         user_id UUID NOT NULL,
         token TEXT NOT NULL,
-        consumed BOOLEAN DEFAULT FALSE,
+        consumed BOOLEAN NOT NULL DEFAULT FALSE,
+        consumed_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
         CONSTRAINT reset_passwords_token_unique UNIQUE (token)

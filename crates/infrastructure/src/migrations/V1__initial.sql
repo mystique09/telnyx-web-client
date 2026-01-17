@@ -4,8 +4,8 @@ CREATE TABLE
         email TEXT NOT NULL UNIQUE,
         hash TEXT NOT NULL,
         salt TEXT NOT NULL,
-        email_verified BOOLEAN NOT NULL,
-        email_verified_at TIMESTAMPTZ NOT NULL,
+        email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+        email_verified_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
         CONSTRAINT users_email_unique UNIQUE (email)
