@@ -49,6 +49,7 @@ tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "parking_
 tokio-util = { version = "0.7", features = ["codec", "io"] }
 tracing = { version = "0.1", features = ["log"] }
 tracing-core = { version = "0.1" }
+uuid = { version = "1", features = ["serde", "v4", "v7"] }
 
 [build-dependencies]
 actix-router = { version = "0.5", default-features = false, features = ["http", "unicode"] }
