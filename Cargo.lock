@@ -442,7 +442,10 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 name = "application"
 version = "0.1.0"
 dependencies = [
+ "bon",
+ "domain",
  "infrastructure",
+ "thiserror 2.0.17",
  "workspace-hack",
 ]
 

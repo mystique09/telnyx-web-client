@@ -5,4 +5,8 @@ edition = "2024"
 
 [dependencies]
 workspace-hack = { version = "0.1", path = "../workspace-hack" }
+domain = { path = "../../crates/domain" }
 infrastructure = { path = "../../crates/infrastructure" }
+
+bon.workspace = true
+thiserror.workspace = true
