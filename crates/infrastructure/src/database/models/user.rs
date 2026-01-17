@@ -18,6 +18,7 @@ pub struct User {
 }
 
 rbatis::crud!(User {}, "users");
+rbatis::impl_select_page!(User{ list_users() => ""}, "users");
 
 impl From<&User> for domain::models::user::User {
     fn from(value: &User) -> Self {
