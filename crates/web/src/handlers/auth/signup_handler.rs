@@ -1,11 +1,17 @@
 use std::sync::Arc;
 
 use actix_inertia::inertia_responder::InertiaResponder;
+use actix_session::Session;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use serde::Serialize;
 
-use crate::{Empty, dto::SignupRequest, inertia::response_with_html};
+use crate::{
+    dto::auth::{FlashProps, SignupErrorProps, SignupRequest},
+    inertia::response_with_html,
+    Empty,
+};
 use application::usecases::create_user_usecase::CreateUserUsecase;
+use crate::flash::extract_flash;
 
 #[derive(Debug, Serialize)]
 struct SignupPageProps {
@@ -13,22 +19,11 @@ struct SignupPageProps {
     pub flash: Option<FlashProps>,
 }
 
-#[derive(Debug, Serialize)]
-struct FlashProps {
-    pub r#type: String,
-    pub message: String,
-}
+pub async fn render_signup(req: HttpRequest, session: Session) -> impl Responder {
+    let flash = extract_flash(&session);
 
-#[derive(Debug, Serialize)]
-struct SignupErrorProps {
-    pub email: Option<String>,
-    pub password: Option<String>,
-    pub general: Option<String>,
-}
-
-pub async fn render_signup(req: HttpRequest) -> impl Responder {
     if req.headers().contains_key("x-inertia") {
-        InertiaResponder::new("Signup", SignupPageProps { errors: None, flash: None }).respond_to(&req)
+        InertiaResponder::new("Signup", SignupPageProps { errors: None, flash }).respond_to(&req)
     } else {
         response_with_html(&req, Empty, "Signup".to_string())
     }
@@ -36,20 +31,22 @@ pub async fn render_signup(req: HttpRequest) -> impl Responder {
 
 /// Process signup form - POST /signup
 /// Inertia.js form flow:
-/// - Success: Return HTTP 303 redirect to /login?registered=true
+/// - Success: Set flash message and redirect to /login
 /// - Failure: Return Signup page with props.errors populated
 pub async fn handle_signup(
     req: HttpRequest,
     signup_req: web::Json<SignupRequest>,
     create_user: web::Data<Arc<CreateUserUsecase>>,
+    session: Session,
 ) -> impl Responder {
     let cmd = signup_req.into_inner().into();
 
     match create_user.execute(cmd).await {
         Ok(_result) => {
-            // Success: Redirect to login page with registered flag
+            // Set flash message and redirect to login
+            crate::flash::set_flash(&session, FlashProps::success("Your account has been created successfully. Please log in."));
             HttpResponse::Found()
-                .append_header((actix_web::http::header::LOCATION, "/login?registered=true"))
+                .append_header((actix_web::http::header::LOCATION, "/login"))
                 .finish()
         }
         Err(e) => {

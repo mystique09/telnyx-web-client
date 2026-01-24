@@ -3,7 +3,10 @@
 //! Contains request/response structs for API endpoints organized by domain.
 
 pub mod auth;
+pub mod flash;
 
 pub use auth::{
-    ForgotPasswordRequest, LoginRequest, LoginResponse, ResetPasswordRequest, SignupRequest,
+    ForgotPasswordRequest, LoginErrorProps, LoginRequest, LoginResponse, ResetPasswordRequest,
+    SignupErrorProps, SignupRequest,
 };
+pub use flash::FlashProps;

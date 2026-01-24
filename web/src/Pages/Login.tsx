@@ -49,10 +49,6 @@ function Login({ errors, flash }: LoginPageProps) {
     password: "",
   });
 
-  // Check URL for registered flag
-  const urlParams = new URLSearchParams(window.location.search);
-  const registered = urlParams.get("registered");
-
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -76,11 +72,8 @@ function Login({ errors, flash }: LoginPageProps) {
     clientErrors.password || formErrors?.password || errors?.password;
   const generalError = formErrors?.general || errors?.general;
 
-  // Show flash message from props or from registered query param
-  const showSuccessFlash = registered === "true" || flash?.type === "success";
-  const successMessage = registered === "true"
-    ? "Account created successfully! Please log in with your credentials."
-    : flash?.message;
+  // Show flash message from props
+  const showFlash = flash?.type === "success" && flash?.message;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 p-4">
@@ -92,9 +85,9 @@ function Login({ errors, flash }: LoginPageProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {showSuccessFlash && successMessage && (
+          {showFlash && (
             <div className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-600">
-              {successMessage}
+              {flash.message}
             </div>
           )}
 

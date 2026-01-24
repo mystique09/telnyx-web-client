@@ -1,4 +1,5 @@
 pub mod dto;
+pub(crate) mod flash;
 pub(crate) mod handlers;
 pub(crate) mod inertia;
 pub mod server;

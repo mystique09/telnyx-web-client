@@ -17,6 +17,7 @@ actix-embed.workspace = true
 actix-multipart.workspace = true
 actix-inertia.workspace = true
 actix-files.workspace = true
+actix-session.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

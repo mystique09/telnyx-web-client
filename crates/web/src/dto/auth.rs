@@ -2,6 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
+pub use crate::dto::flash::FlashProps;
+
 use application::commands;
 
 /// Login request DTO
@@ -63,4 +65,20 @@ pub struct ResetPasswordRequest {
     pub token: String,
     pub password: String,
     pub password_confirmation: String,
+}
+
+/// Login page error props
+#[derive(Debug, Clone, Serialize)]
+pub struct LoginErrorProps {
+    pub email: Option<String>,
+    pub password: Option<String>,
+    pub general: Option<String>,
+}
+
+/// Signup page error props
+#[derive(Debug, Clone, Serialize)]
+pub struct SignupErrorProps {
+    pub email: Option<String>,
+    pub password: Option<String>,
+    pub general: Option<String>,
 }

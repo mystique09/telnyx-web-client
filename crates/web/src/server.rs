@@ -2,9 +2,11 @@ use std::sync::Arc;
 
 use actix_files::Files;
 use actix_inertia::{VersionMiddleware, inertia_responder::InertiaResponder};
+use actix_session::SessionMiddleware;
 use actix_web::{
     App, Error, HttpRequest, Responder,
     body::MessageBody,
+    cookie::Key,
     dev::{ServiceFactory, ServiceRequest, ServiceResponse},
     middleware::{Compress, Logger, NormalizePath},
     web,
@@ -60,7 +62,19 @@ pub fn create_web_service(
             .build(),
     );
 
+    // Session configuration - use a signing key from environment or derive one
+    let secret_key = std::env::var("SESSION_SECRET")
+        .unwrap_or_else(|_| "development-secret-key-change-in-production".to_string());
+    let signing_key = Key::from(secret_key.as_bytes());
+
     let mut app = App::new()
+        .wrap(SessionMiddleware::builder(
+            actix_session::storage::CookieSessionStore::default(),
+            signing_key,
+        )
+        .cookie_http_only(true)
+        .cookie_secure(!is_dev())
+        .build())
         .wrap(NormalizePath::trim())
         .wrap(Compress::default())
         .wrap(Logger::default())

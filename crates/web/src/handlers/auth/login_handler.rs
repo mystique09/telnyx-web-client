@@ -1,30 +1,23 @@
 use std::sync::Arc;
 
 use actix_inertia::inertia_responder::InertiaResponder;
+use actix_session::Session;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use garde::Report;
 use serde::Serialize;
 
-use crate::{Empty, dto::LoginRequest, inertia::response_with_html};
+use crate::{
+    dto::auth::{FlashProps, LoginErrorProps, LoginRequest},
+    inertia::response_with_html,
+    Empty,
+};
 use application::usecases::login_usecase::LoginUsecase;
+use crate::flash::extract_flash;
 
 #[derive(Debug, Serialize)]
 struct LoginPageProps {
     pub errors: Option<LoginErrorProps>,
     pub flash: Option<FlashProps>,
-}
-
-#[derive(Debug, Serialize)]
-struct FlashProps {
-    pub r#type: String,
-    pub message: String,
-}
-
-#[derive(Debug, Serialize)]
-struct LoginErrorProps {
-    pub email: Option<String>,
-    pub password: Option<String>,
-    pub general: Option<String>,
 }
 
 impl From<&Report> for LoginErrorProps {
@@ -50,9 +43,11 @@ impl From<&Report> for LoginErrorProps {
 }
 
 /// Render login page - GET /login
-pub async fn render_login(req: HttpRequest) -> impl Responder {
+pub async fn render_login(req: HttpRequest, session: Session) -> impl Responder {
+    let flash = extract_flash(&session);
+
     if req.headers().contains_key("x-inertia") {
-        InertiaResponder::new("Login", LoginPageProps { errors: None, flash: None }).respond_to(&req)
+        InertiaResponder::new("Login", LoginPageProps { errors: None, flash }).respond_to(&req)
     } else {
         response_with_html(&req, Empty, "Login".to_string())
     }
@@ -66,13 +61,17 @@ pub async fn handle_login(
     req: HttpRequest,
     login_req: web::Json<LoginRequest>,
     login_usecase: web::Data<Arc<LoginUsecase>>,
+    session: Session,
 ) -> impl Responder {
     let cmd = login_req.into_inner().into();
 
     match login_usecase.execute(cmd).await {
         Ok(result) => {
+            // Set flash message
+            crate::flash::set_flash(&session, FlashProps::success("Welcome back! You have successfully logged in."));
+
             // Success: Set auth cookies and redirect to home
-            let mut response = HttpResponse::Found()
+            let response = HttpResponse::Found()
                 .append_header((actix_web::http::header::LOCATION, "/"))
                 .append_header((
                     actix_web::http::header::SET_COOKIE,
