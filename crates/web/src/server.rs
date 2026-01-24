@@ -16,16 +16,9 @@ use serde::Serialize;
 use crate::{
     dto::FlashProps,
     flash::{clear_flash, extract_flash},
-    handlers::{
-        auth::{
-            forgot_password_handler::render_forgot_password,
-            login_handler::{handle_login, render_login},
-            reset_password_handler::render_reset_password,
-            signup_handler::{handle_signup, render_signup},
-        },
-        inertia::version,
-    },
+    handlers::{auth::build_auth_service, inertia::version},
     inertia::{dist_dir, is_dev, response_with_html},
+    middlewares::auth::ProtectedMiddleware,
 };
 use application::usecases::create_user_usecase::CreateUserUsecase;
 use application::usecases::login_usecase::LoginUsecase;
@@ -61,7 +54,7 @@ pub fn create_web_service(
         LoginUsecase::builder()
             .user_repository(user_repository)
             .password_hasher(password_hasher)
-            .token_service(token_service)
+            .token_service(token_service.clone())
             .build(),
     );
 
@@ -82,13 +75,9 @@ pub fn create_web_service(
         .wrap(Logger::default())
         .app_data(web::Data::new(create_user_usecase))
         .app_data(web::Data::new(login_usecase))
-        .route("/", web::get().to(index))
-        .route("/login", web::get().to(render_login))
-        .route("/login", web::post().to(handle_login))
-        .route("/signup", web::get().to(render_signup))
-        .route("/signup", web::post().to(handle_signup))
-        .route("/forgot-password", web::get().to(render_forgot_password))
-        .route("/reset-password", web::get().to(render_reset_password))
+        .app_data(web::Data::new(token_service.clone()))
+        .route("/", web::get().to(index).wrap(ProtectedMiddleware::new()))
+        .service(build_auth_service())
         .service(
             web::scope("/version")
                 .wrap(VersionMiddleware::new("1".to_string()))

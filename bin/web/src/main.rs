@@ -65,7 +65,10 @@ fn setup_tracing() -> eyre::Result<()> {
 
     LogTracer::init()?;
 
-    let default_filter = format!("info,{}=debug,tokio=info", crate_name);
+    let default_filter = format!(
+        "info,{}=debug,web=info,actix_web=info,actix=info,tokio=info",
+        crate_name
+    );
 
     let env_filter =
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(default_filter));

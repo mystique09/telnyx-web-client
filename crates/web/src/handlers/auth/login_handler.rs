@@ -7,6 +7,7 @@ use garde::Report;
 use serde::Serialize;
 
 use crate::flash::extract_flash;
+use crate::session::set_authenticated;
 use crate::{
     Empty,
     dto::auth::{FlashProps, LoginErrorProps, LoginRequest},
@@ -75,13 +76,13 @@ pub async fn handle_login(
 
     match login_usecase.execute(cmd).await {
         Ok(result) => {
-            // Set flash message
             set_flash(
                 &session,
                 FlashProps::success("Welcome back! You have successfully logged in."),
             );
 
-            // Success: Set auth cookies and redirect to home
+            set_authenticated(&session, &result.id.to_string(), &result.access_token);
+
             let response = HttpResponse::Found()
                 .append_header((actix_web::http::header::LOCATION, "/"))
                 .append_header((
@@ -102,7 +103,6 @@ pub async fn handle_login(
             response
         }
         Err(ref e) => {
-            // Failure: Return Login page with errors
             let errors = match e {
                 application::usecases::UsecaseError::Validation(report) => {
                     LoginErrorProps::from(report)

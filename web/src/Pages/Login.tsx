@@ -62,7 +62,7 @@ function Login({ errors, flash }: LoginPageProps) {
     }
 
     setClientErrors({});
-    post("/login");
+    post("/auth/login");
   }
 
   const emailError = clientErrors.email || errors?.email;
@@ -162,7 +162,7 @@ function Login({ errors, flash }: LoginPageProps) {
           <div className="text-sm text-gray-500">
             <Link
               type="button"
-              href="/forgot-password"
+              href="/auth/forgot-password"
               className="font-medium text-gray-900 underline underline-offset-4 hover:text-gray-700"
             >
               Forgot your password?

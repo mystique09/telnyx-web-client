@@ -2,8 +2,10 @@ pub mod dto;
 pub(crate) mod flash;
 pub(crate) mod handlers;
 pub(crate) mod inertia;
+pub(crate) mod middlewares;
 pub mod server;
-pub(crate) mod types;
+pub(crate) mod session;
+pub mod types;
 
 use serde::{Serialize, Serializer, ser::SerializeMap};
 

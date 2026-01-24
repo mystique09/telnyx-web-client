@@ -3951,6 +3951,7 @@ dependencies = [
  "application",
  "bon",
  "domain",
+ "futures-util",
  "garde",
  "serde",
  "serde_json",

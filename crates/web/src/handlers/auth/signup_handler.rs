@@ -36,9 +36,9 @@ pub async fn render_signup(req: HttpRequest, session: Session) -> impl Responder
     }
 }
 
-/// Process signup form - POST /signup
+/// Process signup form - POST /auth/signup
 /// Inertia.js form flow:
-/// - Success: Set flash message and redirect to /login
+/// - Success: Set flash message and redirect to /auth/login
 /// - Failure: Return Signup page with props.errors populated
 pub async fn handle_signup(
     req: HttpRequest,
@@ -56,7 +56,7 @@ pub async fn handle_signup(
                 FlashProps::success("Your account has been created successfully. Please log in."),
             );
             HttpResponse::Found()
-                .append_header((actix_web::http::header::LOCATION, "/login"))
+                .append_header((actix_web::http::header::LOCATION, "/auth/login"))
                 .finish()
         }
         Err(e) => {

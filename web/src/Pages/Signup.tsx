@@ -81,7 +81,7 @@ function Signup({ errors }: SignupPageProps) {
 
     // Clear client errors and submit
     setClientErrors({});
-    post("/signup");
+    post("/auth/signup");
   }
 
   // Merge prop errors (from server) with client errors
@@ -109,7 +109,7 @@ function Signup({ errors }: SignupPageProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <Link href="/login" className="block">
+            <Link href="/auth/login" className="block">
               <Button className="w-full">Go to Login</Button>
             </Link>
           </CardContent>

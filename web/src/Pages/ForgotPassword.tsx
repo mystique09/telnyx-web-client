@@ -91,7 +91,7 @@ function ForgotPassword() {
         </CardContent>
         <CardFooter>
           <Link
-            href="/login"
+            href="/auth/login"
             className="bg-transparent text-black px-0 py-0 hover:bg-transparent gap-2 flex items-center font-medium"
           >
             <ArrowLeft className="h-4 w-4" />
