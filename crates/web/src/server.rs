@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use actix_files::Files;
 use actix_inertia::{VersionMiddleware, inertia_responder::InertiaResponder};
 use actix_web::{
@@ -11,13 +13,19 @@ use actix_web::{
 use crate::{
     Empty,
     handlers::{
-        auth::{forgot_password, login, reset_password, signup},
+        auth::{render_forgot_password, render_login, render_reset_password, render_signup},
         inertia::version,
     },
     inertia::{dist_dir, is_dev, response_with_html},
 };
+use application::usecases::create_user_usecase::CreateUserUsecase;
+use domain::repositories::user_repository::UserRepository;
+use domain::traits::password_hasher::PasswordHasher;
 
-pub fn create_web_service() -> App<
+pub fn create_web_service(
+    user_repository: Arc<dyn UserRepository>,
+    password_hasher: Arc<dyn PasswordHasher>,
+) -> App<
     impl ServiceFactory<
         ServiceRequest,
         Response = ServiceResponse<impl MessageBody>,
@@ -28,15 +36,28 @@ pub fn create_web_service() -> App<
 > {
     let dist = dist_dir();
 
+    // Create use case instance (in production, this would come from DI container)
+    let create_user_usecase = Arc::new(
+        CreateUserUsecase::builder()
+            .user_repository(user_repository)
+            .password_hasher(password_hasher)
+            .build(),
+    );
+
     let mut app = App::new()
         .wrap(NormalizePath::trim())
         .wrap(Compress::default())
         .wrap(Logger::default())
+        .app_data(web::Data::new(create_user_usecase))
         .route("/", web::get().to(index))
-        .route("/login", web::get().to(login))
-        .route("/signup", web::get().to(signup))
-        .route("/forgot-password", web::get().to(forgot_password))
-        .route("/reset-password", web::get().to(reset_password))
+        .route("/login", web::get().to(render_login))
+        .route("/signup", web::get().to(render_signup))
+        .route(
+            "/signup",
+            web::post().to(crate::handlers::auth::handle_signup),
+        )
+        .route("/forgot-password", web::get().to(render_forgot_password))
+        .route("/reset-password", web::get().to(render_reset_password))
         .service(
             web::scope("/version")
                 .wrap(VersionMiddleware::new("1".to_string()))

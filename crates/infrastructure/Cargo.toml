@@ -22,3 +22,4 @@ time.workspace = true
 async-trait.workspace = true
 argon2.workspace = true
 uuid.workspace = true
+pasetors.workspace = true

@@ -1,7 +1,11 @@
+use std::sync::Arc;
+
 use actix_web::{HttpServer, dev::ServerHandle, rt::signal};
 use infrastructure::{
     config::{database::DatabaseConfig, web::WebConfig},
     database::{migrator::migrator, pool::create_db_pool},
+    repositories::user_repository_impl::UserRepositoryImpl,
+    security::argon2_hasher::Argon2Hasher,
 };
 use tracing::{info, subscriber::set_global_default};
 use tracing_log::LogTracer;
@@ -17,14 +21,19 @@ async fn main() -> eyre::Result<()> {
     let config = WebConfig::from_env()?;
     let db_config = DatabaseConfig::from_env()?;
 
-    let _pool = create_db_pool(&db_config.url).await?;
+    let pool = create_db_pool(&db_config.url).await?;
     let _ = migrator(&db_config.url).await;
 
-    let server = HttpServer::new(move || create_web_service())
-        .workers(5)
-        .bind(&config.addrs())?
-        .shutdown_timeout(5)
-        .run();
+    let user_repository = Arc::new(UserRepositoryImpl::builder().pool(pool).build());
+    let password_hasher = Arc::new(Argon2Hasher::new());
+
+    let server = HttpServer::new(move || {
+        create_web_service(user_repository.clone(), password_hasher.clone())
+    })
+    .workers(5)
+    .bind(&config.addrs())?
+    .shutdown_timeout(5)
+    .run();
 
     let handle = server.handle();
 

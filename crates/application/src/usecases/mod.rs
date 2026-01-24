@@ -57,3 +57,30 @@ impl From<domain::traits::password_hasher::HashError> for UsecaseError {
         Self::PasswordHashingFailed(err.to_string())
     }
 }
+
+impl UsecaseError {
+    /// Returns a user-friendly error message for HTTP responses
+    pub fn to_http_message(&self) -> String {
+        match self {
+            UsecaseError::Validation(report) => {
+                let mut errors = Vec::new();
+                for (path, err) in report.iter() {
+                    errors.push(format!("{}: {}", path, err.message()));
+                }
+                errors.join(", ")
+            }
+            UsecaseError::EmailAlreadyTaken => {
+                "An account with this email already exists".to_string()
+            }
+            UsecaseError::EntityNotFound => {
+                "Required resource not found".to_string()
+            }
+            UsecaseError::PasswordHashingFailed(_) => {
+                "An error occurred while processing your request".to_string()
+            }
+            UsecaseError::Database(_) => {
+                "An error occurred while saving your account".to_string()
+            }
+        }
+    }
+}
