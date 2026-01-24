@@ -4,16 +4,18 @@ use actix_files::Files;
 use actix_inertia::{VersionMiddleware, inertia_responder::InertiaResponder};
 use actix_session::{Session, SessionMiddleware};
 use actix_web::{
-    App, Error, HttpRequest, Responder,
+    App, Error, HttpRequest, Responder, Result,
     body::MessageBody,
     cookie::Key,
     dev::{ServiceFactory, ServiceRequest, ServiceResponse},
-    middleware::{Compress, Logger, NormalizePath},
+    http::StatusCode,
+    middleware::{Compress, ErrorHandlerResponse, ErrorHandlers, Logger, NormalizePath},
     web,
 };
 use serde::Serialize;
 
 use crate::{
+    Empty,
     dto::FlashProps,
     flash::{clear_flash, extract_flash},
     handlers::{auth::build_auth_service, inertia::version},
@@ -73,6 +75,7 @@ pub fn create_web_service(
         .wrap(NormalizePath::trim())
         .wrap(Compress::default())
         .wrap(Logger::default())
+        .wrap(ErrorHandlers::new().handler(StatusCode::NOT_FOUND, error_404_error_handler))
         .app_data(web::Data::new(create_user_usecase))
         .app_data(web::Data::new(login_usecase))
         .app_data(web::Data::new(token_service.clone()))
@@ -115,4 +118,18 @@ async fn index(req: HttpRequest, session: Session) -> impl Responder {
             "App".to_string(),
         )
     }
+}
+
+fn error_404_error_handler<B>(res: ServiceResponse<B>) -> Result<ErrorHandlerResponse<B>> {
+    let (req, _) = res.into_parts();
+
+    let response = if req.headers().contains_key("x-inertia") {
+        InertiaResponder::new("NotFound", Empty).respond_to(&req)
+    } else {
+        response_with_html(&req, Empty, "NotFound".to_string())
+    };
+
+    Ok(ErrorHandlerResponse::Response(
+        ServiceResponse::new(req, response).map_into_right_body(),
+    ))
 }
