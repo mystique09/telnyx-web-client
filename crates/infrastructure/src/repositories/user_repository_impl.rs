@@ -37,6 +37,18 @@ impl UserRepository for UserRepositoryImpl {
         Ok(User::from(user))
     }
 
+    async fn find_by_email(&self, email: &str) -> Result<User, RepositoryError> {
+        let users = database::models::user::User::select_by_map(
+            self.pool.as_ref(),
+            value! {"email": email},
+        )
+        .await
+        .map_err(|e| e.to_repository_error())?;
+
+        let user = users.first().ok_or(RepositoryError::NotFound)?;
+        Ok(User::from(user))
+    }
+
     async fn list(&self, page: u64, limit: u64) -> Result<Vec<User>, RepositoryError> {
         let page = database::models::user::User::list_users(
             self.pool.as_ref(),

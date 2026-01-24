@@ -42,10 +42,16 @@ impl ResponseError for WebError {
                 application::usecases::UsecaseError::EmailAlreadyTaken => {
                     actix_web::http::StatusCode::CONFLICT
                 }
+                application::usecases::UsecaseError::InvalidCredentials => {
+                    actix_web::http::StatusCode::UNAUTHORIZED
+                }
                 application::usecases::UsecaseError::EntityNotFound => {
                     actix_web::http::StatusCode::NOT_FOUND
                 }
                 application::usecases::UsecaseError::PasswordHashingFailed(_) => {
+                    actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+                }
+                application::usecases::UsecaseError::TokenGenerationFailed => {
                     actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
                 }
                 application::usecases::UsecaseError::Database(_) => {

@@ -1,7 +1,3 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,38 +7,43 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Mail, Lock, Eye, EyeOff } from "lucide-react";
-import { Link } from "@inertiajs/react";
-const loginSchema = z.object({
-  email: z.email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-});
+import { Link, useForm } from "@inertiajs/react";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { useState } from "react";
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+interface LoginPageProps {
+  errors?: {
+    email?: string;
+    password?: string;
+    general?: string;
+  };
+}
 
-function Login() {
+function Login({ errors }: LoginPageProps) {
   const [showPassword, setShowPassword] = useState(false);
 
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+  const {
+    data,
+    setData,
+    post,
+    processing,
+    errors: formErrors,
+  } = useForm({
+    email: "",
+    password: "",
+    general: "",
   });
 
-  function onSubmit(values: LoginFormValues) {
-    console.log("Login attempt:", values);
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    post("/login");
   }
+
+  // Merge prop errors with form errors (formErrors comes from Inertia)
+  const emailError = formErrors.email || errors?.email;
+  const passwordError = formErrors.password || errors?.password;
+  const generalError = formErrors.general || errors?.general;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 p-4">
@@ -54,72 +55,70 @@ function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <Input
-                          placeholder="name@example.com"
-                          type="email"
-                          className="pl-10"
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          {generalError && (
+            <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">
+              {generalError}
+            </div>
+          )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="email" className="mb-2 block text-sm font-medium">
+                Email
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  className="pl-10"
+                  value={data.email}
+                  onChange={(e) => setData("email", e.target.value)}
+                />
+              </div>
+              {emailError && (
+                <p className="mt-1 text-sm text-red-600">{emailError}</p>
+              )}
+            </div>
 
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <Input
-                          placeholder="Enter your password"
-                          type={showPassword ? "text" : "password"}
-                          className="pl-10 pr-10"
-                          {...field}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 focus:outline-none"
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={form.formState.isSubmitting}
+            <div>
+              <label
+                htmlFor="password"
+                className="mb-2 block text-sm font-medium"
               >
-                {form.formState.isSubmitting ? "Signing in..." : "Sign in"}
-              </Button>
-            </form>
-          </Form>
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  className="pl-10 pr-10"
+                  value={data.password}
+                  onChange={(e) => setData("password", e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 focus:outline-none"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              {passwordError && (
+                <p className="mt-1 text-sm text-red-600">{passwordError}</p>
+              )}
+            </div>
+
+            <Button type="submit" className="w-full" disabled={processing}>
+              {processing ? "Signing in..." : "Sign in"}
+            </Button>
+          </form>
         </CardContent>
         <CardFooter>
           <div className="text-sm text-gray-500">

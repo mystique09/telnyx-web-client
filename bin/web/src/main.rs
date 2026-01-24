@@ -6,6 +6,7 @@ use infrastructure::{
     database::{migrator::migrator, pool::create_db_pool},
     repositories::user_repository_impl::UserRepositoryImpl,
     security::argon2_hasher::Argon2Hasher,
+    security::paseto_tokenizer::PasetoAuthenticationTokenService,
 };
 use tracing::{info, subscriber::set_global_default};
 use tracing_log::LogTracer;
@@ -26,9 +27,16 @@ async fn main() -> eyre::Result<()> {
 
     let user_repository = Arc::new(UserRepositoryImpl::builder().pool(pool).build());
     let password_hasher = Arc::new(Argon2Hasher::new());
+    let token_service = Arc::new(PasetoAuthenticationTokenService::new(
+        &config.paseto_symmetric_key,
+    )?);
 
     let server = HttpServer::new(move || {
-        create_web_service(user_repository.clone(), password_hasher.clone())
+        create_web_service(
+            user_repository.clone(),
+            password_hasher.clone(),
+            token_service.clone(),
+        )
     })
     .workers(5)
     .bind(&config.addrs())?

@@ -17,7 +17,7 @@ pub struct PasetoAuthenticationTokenService {
 }
 
 impl PasetoAuthenticationTokenService {
-    pub fn new(symmetric_key: String) -> Result<Self, TokenServiceError> {
+    pub fn new(symmetric_key: &str) -> Result<Self, TokenServiceError> {
         let symmetric_key = SymmetricKey::<V4>::from(&symmetric_key.as_bytes())
             .map_err(|_| TokenServiceError::TokenGenerationFailed)?;
 

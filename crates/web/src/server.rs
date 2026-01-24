@@ -19,12 +19,15 @@ use crate::{
     inertia::{dist_dir, is_dev, response_with_html},
 };
 use application::usecases::create_user_usecase::CreateUserUsecase;
+use application::usecases::login_usecase::LoginUsecase;
 use domain::repositories::user_repository::UserRepository;
 use domain::traits::password_hasher::PasswordHasher;
+use domain::traits::token_service::TokenService;
 
 pub fn create_web_service(
     user_repository: Arc<dyn UserRepository>,
     password_hasher: Arc<dyn PasswordHasher>,
+    token_service: Arc<dyn TokenService>,
 ) -> App<
     impl ServiceFactory<
         ServiceRequest,
@@ -36,11 +39,19 @@ pub fn create_web_service(
 > {
     let dist = dist_dir();
 
-    // Create use case instance (in production, this would come from DI container)
+    // Create use case instances (in production, this would come from DI container)
     let create_user_usecase = Arc::new(
         CreateUserUsecase::builder()
+            .user_repository(user_repository.clone())
+            .password_hasher(password_hasher.clone())
+            .build(),
+    );
+
+    let login_usecase = Arc::new(
+        LoginUsecase::builder()
             .user_repository(user_repository)
             .password_hasher(password_hasher)
+            .token_service(token_service)
             .build(),
     );
 
@@ -49,8 +60,13 @@ pub fn create_web_service(
         .wrap(Compress::default())
         .wrap(Logger::default())
         .app_data(web::Data::new(create_user_usecase))
+        .app_data(web::Data::new(login_usecase))
         .route("/", web::get().to(index))
         .route("/login", web::get().to(render_login))
+        .route(
+            "/login",
+            web::post().to(crate::handlers::auth::handle_login),
+        )
         .route("/signup", web::get().to(render_signup))
         .route(
             "/signup",

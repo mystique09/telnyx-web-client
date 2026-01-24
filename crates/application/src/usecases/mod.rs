@@ -1,4 +1,5 @@
 pub mod create_user_usecase;
+pub mod login_usecase;
 
 use domain::repositories::RepositoryError;
 use garde::Report;
@@ -11,11 +12,17 @@ pub enum UsecaseError {
     #[error("Email already taken")]
     EmailAlreadyTaken,
 
+    #[error("Invalid email or password")]
+    InvalidCredentials,
+
     #[error("Entity not found")]
     EntityNotFound,
 
     #[error("Password hashing failed: {0}")]
     PasswordHashingFailed(String),
+
+    #[error("Token generation failed")]
+    TokenGenerationFailed,
 
     #[error("Database error: {0}")]
     Database(String),
@@ -72,15 +79,15 @@ impl UsecaseError {
             UsecaseError::EmailAlreadyTaken => {
                 "An account with this email already exists".to_string()
             }
-            UsecaseError::EntityNotFound => {
-                "Required resource not found".to_string()
-            }
+            UsecaseError::InvalidCredentials => "Invalid email or password".to_string(),
+            UsecaseError::EntityNotFound => "Required resource not found".to_string(),
             UsecaseError::PasswordHashingFailed(_) => {
                 "An error occurred while processing your request".to_string()
             }
-            UsecaseError::Database(_) => {
-                "An error occurred while saving your account".to_string()
+            UsecaseError::TokenGenerationFailed => {
+                "An error occurred while generating authentication token".to_string()
             }
+            UsecaseError::Database(_) => "An error occurred while saving your account".to_string(),
         }
     }
 }

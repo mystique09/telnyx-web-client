@@ -6,6 +6,7 @@ use crate::config::ConfigError;
 pub struct WebConfig {
     pub host: Ipv4Addr,
     pub port: u16,
+    pub paseto_symmetric_key: String,
 }
 
 impl WebConfig {
@@ -20,7 +21,14 @@ impl WebConfig {
             .parse::<u16>()
             .map_err(|_| ConfigError::EnvVarNotValid("PORT".to_string()))?;
 
-        Ok(Self::builder().host(host).port(port).build())
+        let paseto_symmetric_key = std::env::var("PASETO_SEMETRIC_KEY")
+            .map_err(|_| ConfigError::EnvVarNotFound("PASETO_SEMETRIC_KEY".to_string()))?;
+
+        Ok(Self::builder()
+            .host(host)
+            .port(port)
+            .paseto_symmetric_key(paseto_symmetric_key)
+            .build())
     }
 
     pub fn addrs(&self) -> String {
