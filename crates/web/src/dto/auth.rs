@@ -9,6 +9,15 @@ pub struct LoginRequest {
     pub password: String,
 }
 
+impl From<LoginRequest> for application::commands::LoginCommand {
+    fn from(req: LoginRequest) -> Self {
+        Self {
+            email: req.email,
+            password: req.password,
+        }
+    }
+}
+
 /// Login response DTO
 #[derive(Debug, Serialize)]
 pub struct LoginResponse {
@@ -34,4 +43,11 @@ pub struct ResetPasswordRequest {
     pub token: String,
     pub password: String,
     pub password_confirmation: String,
+}
+
+/// Signup success response
+#[derive(Debug, Serialize)]
+pub struct SignupSuccessResponse {
+    pub id: String,
+    pub email: String,
 }

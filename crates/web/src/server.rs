@@ -13,7 +13,12 @@ use actix_web::{
 use crate::{
     Empty,
     handlers::{
-        auth::{render_forgot_password, render_login, render_reset_password, render_signup},
+        auth::{
+            forgot_password_handler::render_forgot_password,
+            login_handler::{handle_login, render_login},
+            reset_password_handler::render_reset_password,
+            signup_handler::{handle_signup, render_signup},
+        },
         inertia::version,
     },
     inertia::{dist_dir, is_dev, response_with_html},
@@ -63,15 +68,9 @@ pub fn create_web_service(
         .app_data(web::Data::new(login_usecase))
         .route("/", web::get().to(index))
         .route("/login", web::get().to(render_login))
-        .route(
-            "/login",
-            web::post().to(crate::handlers::auth::handle_login),
-        )
+        .route("/login", web::post().to(handle_login))
         .route("/signup", web::get().to(render_signup))
-        .route(
-            "/signup",
-            web::post().to(crate::handlers::auth::handle_signup),
-        )
+        .route("/signup", web::post().to(handle_signup))
         .route("/forgot-password", web::get().to(render_forgot_password))
         .route("/reset-password", web::get().to(render_reset_password))
         .service(

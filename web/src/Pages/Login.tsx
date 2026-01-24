@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Link, useForm } from "@inertiajs/react";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useState } from "react";
+import { z } from "zod";
 
 interface LoginPageProps {
   errors?: {
@@ -20,8 +21,19 @@ interface LoginPageProps {
   };
 }
 
+const loginSchema = z.object({
+  email: z.email().min(1, "Email is required"),
+  password: z.string().min(1, "Password is required"),
+  general: z.string(),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+
 function Login({ errors }: LoginPageProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const [clientErrors, setClientErrors] = useState<
+    Partial<Record<keyof LoginFormValues, string>>
+  >({});
 
   const {
     data,
@@ -29,7 +41,7 @@ function Login({ errors }: LoginPageProps) {
     post,
     processing,
     errors: formErrors,
-  } = useForm({
+  } = useForm<LoginFormValues>({
     email: "",
     password: "",
     general: "",
@@ -37,13 +49,26 @@ function Login({ errors }: LoginPageProps) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    const result = loginSchema.safeParse(data);
+    if (!result.success) {
+      const formattedErrors: Record<string, string> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as string;
+        formattedErrors[field] = issue.message;
+      }
+      setClientErrors(formattedErrors);
+      return;
+    }
+
+    setClientErrors({});
     post("/login");
   }
 
-  // Merge prop errors with form errors (formErrors comes from Inertia)
-  const emailError = formErrors.email || errors?.email;
-  const passwordError = formErrors.password || errors?.password;
-  const generalError = formErrors.general || errors?.general;
+  const emailError = clientErrors.email || formErrors?.email || errors?.email;
+  const passwordError =
+    clientErrors.password || formErrors?.password || errors?.password;
+  const generalError = formErrors?.general || errors?.general;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 p-4">
@@ -73,7 +98,14 @@ function Login({ errors }: LoginPageProps) {
                   placeholder="name@example.com"
                   className="pl-10"
                   value={data.email}
-                  onChange={(e) => setData("email", e.target.value)}
+                  onChange={(e) => {
+                    setData("email", e.target.value);
+                    if (clientErrors.email)
+                      setClientErrors((prev) => ({
+                        ...prev,
+                        email: undefined,
+                      }));
+                  }}
                 />
               </div>
               {emailError && (
@@ -96,7 +128,14 @@ function Login({ errors }: LoginPageProps) {
                   placeholder="Enter your password"
                   className="pl-10 pr-10"
                   value={data.password}
-                  onChange={(e) => setData("password", e.target.value)}
+                  onChange={(e) => {
+                    setData("password", e.target.value);
+                    if (clientErrors.password)
+                      setClientErrors((prev) => ({
+                        ...prev,
+                        password: undefined,
+                      }));
+                  }}
                 />
                 <button
                   type="button"
