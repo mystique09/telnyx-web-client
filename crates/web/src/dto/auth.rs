@@ -2,6 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use application::commands;
+
 /// Login request DTO
 #[derive(Debug, Deserialize)]
 pub struct LoginRequest {
@@ -9,11 +11,29 @@ pub struct LoginRequest {
     pub password: String,
 }
 
-impl From<LoginRequest> for application::commands::LoginCommand {
+impl From<LoginRequest> for commands::LoginCommand {
     fn from(req: LoginRequest) -> Self {
         Self {
             email: req.email,
             password: req.password,
+        }
+    }
+}
+
+/// Signup request DTO
+#[derive(Debug, Deserialize)]
+pub struct SignupRequest {
+    pub email: String,
+    pub password: String,
+    pub password_confirmation: String,
+}
+
+impl From<SignupRequest> for commands::SignupCommand {
+    fn from(req: SignupRequest) -> Self {
+        Self {
+            email: req.email,
+            password: req.password,
+            password_confirmation: req.password_confirmation,
         }
     }
 }
@@ -43,11 +63,4 @@ pub struct ResetPasswordRequest {
     pub token: String,
     pub password: String,
     pub password_confirmation: String,
-}
-
-/// Signup success response
-#[derive(Debug, Serialize)]
-pub struct SignupSuccessResponse {
-    pub id: String,
-    pub email: String,
 }
