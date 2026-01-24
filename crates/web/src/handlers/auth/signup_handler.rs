@@ -1,19 +1,22 @@
 use std::sync::Arc;
 
 use actix_inertia::inertia_responder::InertiaResponder;
-use actix_web::{HttpRequest, HttpResponse, Responder, web};
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use serde::Serialize;
 
-use crate::{
-    Empty,
-    dto::SignupRequest,
-    inertia::response_with_html,
-};
+use crate::{Empty, dto::SignupRequest, inertia::response_with_html};
 use application::usecases::create_user_usecase::CreateUserUsecase;
 
 #[derive(Debug, Serialize)]
 struct SignupPageProps {
     pub errors: Option<SignupErrorProps>,
+    pub flash: Option<FlashProps>,
+}
+
+#[derive(Debug, Serialize)]
+struct FlashProps {
+    pub r#type: String,
+    pub message: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -25,7 +28,7 @@ struct SignupErrorProps {
 
 pub async fn render_signup(req: HttpRequest) -> impl Responder {
     if req.headers().contains_key("x-inertia") {
-        InertiaResponder::new("Signup", Empty).respond_to(&req)
+        InertiaResponder::new("Signup", SignupPageProps { errors: None, flash: None }).respond_to(&req)
     } else {
         response_with_html(&req, Empty, "Signup".to_string())
     }
@@ -33,8 +36,8 @@ pub async fn render_signup(req: HttpRequest) -> impl Responder {
 
 /// Process signup form - POST /signup
 /// Inertia.js form flow:
-/// - Success: return HTTP 303 redirect to /login
-/// - Failure: return Signup page with props.errors populated
+/// - Success: Return HTTP 303 redirect to /login?registered=true
+/// - Failure: Return Signup page with props.errors populated
 pub async fn handle_signup(
     req: HttpRequest,
     signup_req: web::Json<SignupRequest>,
@@ -44,9 +47,9 @@ pub async fn handle_signup(
 
     match create_user.execute(cmd).await {
         Ok(_result) => {
-            // Success: Redirect to login page
+            // Success: Redirect to login page with registered flag
             HttpResponse::Found()
-                .append_header((actix_web::http::header::LOCATION, "/login"))
+                .append_header((actix_web::http::header::LOCATION, "/login?registered=true"))
                 .finish()
         }
         Err(e) => {
@@ -85,7 +88,10 @@ pub async fn handle_signup(
 
             InertiaResponder::new(
                 "Signup",
-                SignupPageProps { errors: Some(errors) },
+                SignupPageProps {
+                    errors: Some(errors),
+                    flash: None,
+                },
             )
             .respond_to(&req)
         }

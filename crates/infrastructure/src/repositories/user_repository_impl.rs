@@ -24,7 +24,7 @@ impl UserRepository for UserRepositoryImpl {
             .await
             .map_err(|e| e.to_repository_error())?;
 
-        todo!()
+        Ok(())
     }
 
     async fn find_by_id(&self, id: &uuid::Uuid) -> Result<User, RepositoryError> {

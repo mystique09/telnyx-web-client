@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Link, useForm } from "@inertiajs/react";
+import { Link, useForm, usePage } from "@inertiajs/react";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
@@ -19,17 +19,20 @@ interface LoginPageProps {
     password?: string;
     general?: string;
   };
+  flash?: {
+    type?: string;
+    message?: string;
+  };
 }
 
 const loginSchema = z.object({
-  email: z.email().min(1, "Email is required"),
+  email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
   password: z.string().min(1, "Password is required"),
-  general: z.string(),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-function Login({ errors }: LoginPageProps) {
+function Login({ errors, flash }: LoginPageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [clientErrors, setClientErrors] = useState<
     Partial<Record<keyof LoginFormValues, string>>
@@ -44,8 +47,11 @@ function Login({ errors }: LoginPageProps) {
   } = useForm<LoginFormValues>({
     email: "",
     password: "",
-    general: "",
   });
+
+  // Check URL for registered flag
+  const urlParams = new URLSearchParams(window.location.search);
+  const registered = urlParams.get("registered");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -70,6 +76,12 @@ function Login({ errors }: LoginPageProps) {
     clientErrors.password || formErrors?.password || errors?.password;
   const generalError = formErrors?.general || errors?.general;
 
+  // Show flash message from props or from registered query param
+  const showSuccessFlash = registered === "true" || flash?.type === "success";
+  const successMessage = registered === "true"
+    ? "Account created successfully! Please log in with your credentials."
+    : flash?.message;
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 p-4">
       <Card className="w-full max-w-md shadow-lg">
@@ -80,6 +92,12 @@ function Login({ errors }: LoginPageProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {showSuccessFlash && successMessage && (
+            <div className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-600">
+              {successMessage}
+            </div>
+          )}
+
           {generalError && (
             <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">
               {generalError}

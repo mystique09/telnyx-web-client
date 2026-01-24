@@ -1,6 +1,3 @@
-import { useState } from "react";
-import { useForm, Link } from "@inertiajs/react";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,13 +7,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Mail, Lock, ShieldCheck, AlertCircle } from "lucide-react";
+import { Link, useForm } from "@inertiajs/react";
+import { AlertCircle, Lock, Mail, ShieldCheck, Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
+import { z } from "zod";
 
 interface SignupPageProps {
   errors?: {
     email?: string;
     password?: string;
     general?: string;
+  };
+  flash?: {
+    type?: string;
+    message?: string;
   };
 }
 
@@ -40,9 +44,11 @@ const signupSchema = z
 
 type SignupFormValues = z.infer<typeof signupSchema>;
 
-function Signup({ errors }: SignupPageProps) {
+function Signup({ errors, flash }: SignupPageProps) {
   const [showPassword, setShowPassword] = useState(false);
-  const [clientErrors, setClientErrors] = useState<Partial<Record<keyof SignupFormValues, string>>>({});
+  const [clientErrors, setClientErrors] = useState<
+    Partial<Record<keyof SignupFormValues, string>>
+  >({});
   const [isAdminSetup] = useState(true);
 
   const {
@@ -92,9 +98,12 @@ function Signup({ errors }: SignupPageProps) {
               <div className="rounded-full bg-yellow-100 p-3">
                 <ShieldCheck className="h-8 w-8 text-yellow-600" />
               </div>
-              <CardTitle className="text-2xl font-bold">Admin Already Exists</CardTitle>
+              <CardTitle className="text-2xl font-bold">
+                Admin Already Exists
+              </CardTitle>
               <CardDescription className="text-center">
-                An administrator account has already been created. Please log in with your existing credentials.
+                An administrator account has already been created. Please log in
+                with your existing credentials.
               </CardDescription>
             </div>
           </CardHeader>
@@ -116,9 +125,12 @@ function Signup({ errors }: SignupPageProps) {
             <div className="rounded-full bg-blue-100 p-3">
               <ShieldCheck className="h-8 w-8 text-blue-600" />
             </div>
-            <CardTitle className="text-2xl font-bold">Create Admin Account</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              Create Admin Account
+            </CardTitle>
             <CardDescription className="text-center">
-              This is a one-time setup to create the administrator account. All other users will be created by the admin.
+              This is a one-time setup to create the administrator account. All
+              other users will be created by the admin.
             </CardDescription>
           </div>
         </CardHeader>
@@ -128,10 +140,19 @@ function Signup({ errors }: SignupPageProps) {
               <AlertCircle className="h-4 w-4 shrink-0 text-yellow-600 mt-0.5" />
               <div className="text-sm text-yellow-800">
                 <p className="font-semibold">Important:</p>
-                <p>This page will be hidden after the admin account is created. Make sure to remember your credentials.</p>
+                <p>
+                  This page will be hidden after the admin account is created.
+                  Make sure to remember your credentials.
+                </p>
               </div>
             </div>
           </div>
+
+          {flash?.type === "success" && flash.message && (
+            <div className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-600">
+              {flash.message}
+            </div>
+          )}
 
           {generalError && (
             <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">
@@ -154,15 +175,24 @@ function Signup({ errors }: SignupPageProps) {
                   value={data.email}
                   onChange={(e) => {
                     setData("email", e.target.value);
-                    if (clientErrors.email) setClientErrors((prev) => ({ ...prev, email: undefined }));
+                    if (clientErrors.email)
+                      setClientErrors((prev) => ({
+                        ...prev,
+                        email: undefined,
+                      }));
                   }}
                 />
               </div>
-              {emailError && <p className="mt-1 text-sm text-red-600">{emailError}</p>}
+              {emailError && (
+                <p className="mt-1 text-sm text-red-600">{emailError}</p>
+              )}
             </div>
 
             <div>
-              <label htmlFor="password" className="mb-2 block text-sm font-medium">
+              <label
+                htmlFor="password"
+                className="mb-2 block text-sm font-medium"
+              >
                 Password
               </label>
               <div className="relative">
@@ -171,19 +201,39 @@ function Signup({ errors }: SignupPageProps) {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Create a strong password"
-                  className="pl-10"
+                  className="pl-10 pr-10"
                   value={data.password}
                   onChange={(e) => {
                     setData("password", e.target.value);
-                    if (clientErrors.password) setClientErrors((prev) => ({ ...prev, password: undefined }));
+                    if (clientErrors.password)
+                      setClientErrors((prev) => ({
+                        ...prev,
+                        password: undefined,
+                      }));
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 focus:outline-none"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
               </div>
-              {passwordError && <p className="mt-1 text-sm text-red-600">{passwordError}</p>}
+              {passwordError && (
+                <p className="mt-1 text-sm text-red-600">{passwordError}</p>
+              )}
             </div>
 
             <div>
-              <label htmlFor="password_confirmation" className="mb-2 block text-sm font-medium">
+              <label
+                htmlFor="password_confirmation"
+                className="mb-2 block text-sm font-medium"
+              >
                 Confirm Password
               </label>
               <div className="relative">
@@ -196,11 +246,17 @@ function Signup({ errors }: SignupPageProps) {
                   value={data.password_confirmation}
                   onChange={(e) => {
                     setData("password_confirmation", e.target.value);
-                    if (clientErrors.password_confirmation) setClientErrors((prev) => ({ ...prev, password_confirmation: undefined }));
+                    if (clientErrors.password_confirmation)
+                      setClientErrors((prev) => ({
+                        ...prev,
+                        password_confirmation: undefined,
+                      }));
                   }}
                 />
               </div>
-              {confirmPasswordError && <p className="mt-1 text-sm text-red-600">{confirmPasswordError}</p>}
+              {confirmPasswordError && (
+                <p className="mt-1 text-sm text-red-600">{confirmPasswordError}</p>
+              )}
             </div>
 
             <Button type="submit" className="w-full" disabled={processing}>

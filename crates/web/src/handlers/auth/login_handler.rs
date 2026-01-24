@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use actix_inertia::inertia_responder::InertiaResponder;
-use actix_web::{HttpRequest, HttpResponse, Responder, web};
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use garde::Report;
 use serde::Serialize;
 
@@ -11,6 +11,13 @@ use application::usecases::login_usecase::LoginUsecase;
 #[derive(Debug, Serialize)]
 struct LoginPageProps {
     pub errors: Option<LoginErrorProps>,
+    pub flash: Option<FlashProps>,
+}
+
+#[derive(Debug, Serialize)]
+struct FlashProps {
+    pub r#type: String,
+    pub message: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -45,7 +52,7 @@ impl From<&Report> for LoginErrorProps {
 /// Render login page - GET /login
 pub async fn render_login(req: HttpRequest) -> impl Responder {
     if req.headers().contains_key("x-inertia") {
-        InertiaResponder::new("Login", LoginPageProps { errors: None }).respond_to(&req)
+        InertiaResponder::new("Login", LoginPageProps { errors: None, flash: None }).respond_to(&req)
     } else {
         response_with_html(&req, Empty, "Login".to_string())
     }
@@ -53,8 +60,8 @@ pub async fn render_login(req: HttpRequest) -> impl Responder {
 
 /// Process login form - POST /login
 /// Inertia.js form flow:
-/// - Success: return HTTP 303 redirect to /dashboard
-/// - Failure: return Login page with props.errors populated
+/// - Success: Set auth cookies and redirect to / with flash message
+/// - Failure: Return Login page with props.errors populated
 pub async fn handle_login(
     req: HttpRequest,
     login_req: web::Json<LoginRequest>,
@@ -63,11 +70,28 @@ pub async fn handle_login(
     let cmd = login_req.into_inner().into();
 
     match login_usecase.execute(cmd).await {
-        Ok(_result) => {
-            // Success: Set auth cookie and redirect to dashboard
-            HttpResponse::Found()
-                .append_header((actix_web::http::header::LOCATION, "/dashboard"))
-                .finish()
+        Ok(result) => {
+            // Success: Set auth cookies and redirect to home
+            let mut response = HttpResponse::Found()
+                .append_header((actix_web::http::header::LOCATION, "/"))
+                .append_header((
+                    actix_web::http::header::SET_COOKIE,
+                    format!(
+                        "access_token={}; HttpOnly; Secure; Path=/; SameSite=Lax; Max-Age={}",
+                        result.access_token,
+                        3600
+                    ),
+                ))
+                .append_header((
+                    actix_web::http::header::SET_COOKIE,
+                    format!(
+                        "refresh_token={}; HttpOnly; Secure; Path=/; SameSite=Lax; Max-Age={}",
+                        result.refresh_token,
+                        604800
+                    ),
+                ))
+                .finish();
+            response
         }
         Err(ref e) => {
             // Failure: Return Login page with errors
@@ -86,6 +110,7 @@ pub async fn handle_login(
                 "Login",
                 LoginPageProps {
                     errors: Some(errors),
+                    flash: None,
                 },
             )
             .respond_to(&req)
