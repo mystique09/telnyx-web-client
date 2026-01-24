@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use actix_files::Files;
 use actix_inertia::{VersionMiddleware, inertia_responder::InertiaResponder};
-use actix_session::SessionMiddleware;
+use actix_session::{Session, SessionMiddleware};
 use actix_web::{
     App, Error, HttpRequest, Responder,
     body::MessageBody,
@@ -11,9 +11,11 @@ use actix_web::{
     middleware::{Compress, Logger, NormalizePath},
     web,
 };
+use serde::Serialize;
 
 use crate::{
-    Empty,
+    dto::FlashProps,
+    flash::{clear_flash, extract_flash},
     handlers::{
         auth::{
             forgot_password_handler::render_forgot_password,
@@ -32,6 +34,7 @@ use domain::traits::password_hasher::PasswordHasher;
 use domain::traits::token_service::TokenService;
 
 pub fn create_web_service(
+    session_secret: String,
     user_repository: Arc<dyn UserRepository>,
     password_hasher: Arc<dyn PasswordHasher>,
     token_service: Arc<dyn TokenService>,
@@ -62,19 +65,18 @@ pub fn create_web_service(
             .build(),
     );
 
-    // Session configuration - use a signing key from environment or derive one
-    let secret_key = std::env::var("SESSION_SECRET")
-        .unwrap_or_else(|_| "development-secret-key-change-in-production".to_string());
-    let signing_key = Key::from(secret_key.as_bytes());
+    let signing_key = Key::from(session_secret.as_bytes());
 
     let mut app = App::new()
-        .wrap(SessionMiddleware::builder(
-            actix_session::storage::CookieSessionStore::default(),
-            signing_key,
+        .wrap(
+            SessionMiddleware::builder(
+                actix_session::storage::CookieSessionStore::default(),
+                signing_key,
+            )
+            .cookie_http_only(true)
+            .cookie_secure(!is_dev())
+            .build(),
         )
-        .cookie_http_only(true)
-        .cookie_secure(!is_dev())
-        .build())
         .wrap(NormalizePath::trim())
         .wrap(Compress::default())
         .wrap(Logger::default())
@@ -102,10 +104,26 @@ pub fn create_web_service(
     app
 }
 
-async fn index(req: HttpRequest) -> impl Responder {
+#[derive(Debug, Serialize, bon::Builder)]
+struct HomePageProps {
+    pub flash: Option<FlashProps>,
+}
+
+async fn index(req: HttpRequest, session: Session) -> impl Responder {
+    let flash = extract_flash(&session);
+
+    if flash.is_some() {
+        clear_flash(&session);
+    }
+
     if req.headers().contains_key("x-inertia") {
-        InertiaResponder::new("App", Empty).respond_to(&req)
+        InertiaResponder::new("App", HomePageProps::builder().maybe_flash(flash).build())
+            .respond_to(&req)
     } else {
-        response_with_html(&req, Empty, "App".to_string())
+        response_with_html(
+            &req,
+            HomePageProps::builder().maybe_flash(flash).build(),
+            "App".to_string(),
+        )
     }
 }

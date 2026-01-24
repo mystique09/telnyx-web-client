@@ -1,6 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useFlash } from "@/hooks/use-flash";
+import type { PropsWithFlash } from "@/lib/types";
 
-function App() {
+function App({ flash }: PropsWithFlash) {
+  useFlash(flash);
+
   return (
     <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-8">
       <div className="mx-auto max-w-4xl">

@@ -2,16 +2,16 @@ use std::sync::Arc;
 
 use actix_inertia::inertia_responder::InertiaResponder;
 use actix_session::Session;
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{HttpRequest, HttpResponse, Responder, web};
 use serde::Serialize;
 
+use crate::flash::{extract_flash, set_flash};
 use crate::{
+    Empty,
     dto::auth::{FlashProps, SignupErrorProps, SignupRequest},
     inertia::response_with_html,
-    Empty,
 };
 use application::usecases::create_user_usecase::CreateUserUsecase;
-use crate::flash::extract_flash;
 
 #[derive(Debug, Serialize)]
 struct SignupPageProps {
@@ -23,7 +23,14 @@ pub async fn render_signup(req: HttpRequest, session: Session) -> impl Responder
     let flash = extract_flash(&session);
 
     if req.headers().contains_key("x-inertia") {
-        InertiaResponder::new("Signup", SignupPageProps { errors: None, flash }).respond_to(&req)
+        InertiaResponder::new(
+            "Signup",
+            SignupPageProps {
+                errors: None,
+                flash,
+            },
+        )
+        .respond_to(&req)
     } else {
         response_with_html(&req, Empty, "Signup".to_string())
     }
@@ -44,7 +51,10 @@ pub async fn handle_signup(
     match create_user.execute(cmd).await {
         Ok(_result) => {
             // Set flash message and redirect to login
-            crate::flash::set_flash(&session, FlashProps::success("Your account has been created successfully. Please log in."));
+            set_flash(
+                &session,
+                FlashProps::success("Your account has been created successfully. Please log in."),
+            );
             HttpResponse::Found()
                 .append_header((actix_web::http::header::LOCATION, "/login"))
                 .finish()

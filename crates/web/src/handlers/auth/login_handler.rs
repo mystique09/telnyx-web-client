@@ -2,17 +2,18 @@ use std::sync::Arc;
 
 use actix_inertia::inertia_responder::InertiaResponder;
 use actix_session::Session;
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{HttpRequest, HttpResponse, Responder, web};
 use garde::Report;
 use serde::Serialize;
 
+use crate::flash::extract_flash;
 use crate::{
-    dto::auth::{FlashProps, LoginErrorProps, LoginRequest},
-    inertia::response_with_html,
     Empty,
+    dto::auth::{FlashProps, LoginErrorProps, LoginRequest},
+    flash::set_flash,
+    inertia::response_with_html,
 };
 use application::usecases::login_usecase::LoginUsecase;
-use crate::flash::extract_flash;
 
 #[derive(Debug, Serialize)]
 struct LoginPageProps {
@@ -47,7 +48,14 @@ pub async fn render_login(req: HttpRequest, session: Session) -> impl Responder 
     let flash = extract_flash(&session);
 
     if req.headers().contains_key("x-inertia") {
-        InertiaResponder::new("Login", LoginPageProps { errors: None, flash }).respond_to(&req)
+        InertiaResponder::new(
+            "Login",
+            LoginPageProps {
+                errors: None,
+                flash,
+            },
+        )
+        .respond_to(&req)
     } else {
         response_with_html(&req, Empty, "Login".to_string())
     }
@@ -68,7 +76,10 @@ pub async fn handle_login(
     match login_usecase.execute(cmd).await {
         Ok(result) => {
             // Set flash message
-            crate::flash::set_flash(&session, FlashProps::success("Welcome back! You have successfully logged in."));
+            set_flash(
+                &session,
+                FlashProps::success("Welcome back! You have successfully logged in."),
+            );
 
             // Success: Set auth cookies and redirect to home
             let response = HttpResponse::Found()
@@ -77,16 +88,14 @@ pub async fn handle_login(
                     actix_web::http::header::SET_COOKIE,
                     format!(
                         "access_token={}; HttpOnly; Secure; Path=/; SameSite=Lax; Max-Age={}",
-                        result.access_token,
-                        3600
+                        result.access_token, 3600
                     ),
                 ))
                 .append_header((
                     actix_web::http::header::SET_COOKIE,
                     format!(
                         "refresh_token={}; HttpOnly; Secure; Path=/; SameSite=Lax; Max-Age={}",
-                        result.refresh_token,
-                        604800
+                        result.refresh_token, 604800
                     ),
                 ))
                 .finish();

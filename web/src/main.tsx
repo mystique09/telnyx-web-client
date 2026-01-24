@@ -2,6 +2,7 @@ import { createInertiaApp } from "@inertiajs/react";
 import "./index.css";
 
 import { createRoot } from "react-dom/client";
+import RootLayout from "./layout";
 
 createInertiaApp({
   id: "app",
@@ -10,7 +11,11 @@ createInertiaApp({
     return pages[`./Pages/${name}.tsx`];
   },
   setup({ el, App, props }) {
-    createRoot(el).render(<App {...props} />);
+    createRoot(el).render(
+      <RootLayout>
+        <App {...props} />
+      </RootLayout>,
+    );
   },
   defaults: {
     form: {

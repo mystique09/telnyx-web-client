@@ -31,8 +31,11 @@ async fn main() -> eyre::Result<()> {
         &config.paseto_symmetric_key,
     )?);
 
+    let session_secret = config.session_secret.clone();
     let server = HttpServer::new(move || {
+        let session_secret = session_secret.clone();
         create_web_service(
+            session_secret,
             user_repository.clone(),
             password_hasher.clone(),
             token_service.clone(),

@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,7 +10,14 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Link, useForm } from "@inertiajs/react";
-import { AlertCircle, Lock, Mail, ShieldCheck, Eye, EyeOff } from "lucide-react";
+import {
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  ShieldCheck,
+} from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 
@@ -18,22 +27,20 @@ interface SignupPageProps {
     password?: string;
     general?: string;
   };
-  flash?: {
-    type?: string;
-    message?: string;
-  };
 }
 
 // Client-side validation schema with user-friendly messages
 const signupSchema = z
   .object({
-    email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
+    email: z
+      .email("Please enter a valid email address")
+      .min(1, "Email is required"),
     password: z
       .string()
       .min(8, "Password must be at least 8 characters long")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+        "Password must contain at least one uppercase letter, one lowercase letter, and one number",
       ),
     password_confirmation: z.string().min(1, "Please confirm your password"),
   })
@@ -44,20 +51,14 @@ const signupSchema = z
 
 type SignupFormValues = z.infer<typeof signupSchema>;
 
-function Signup({ errors, flash }: SignupPageProps) {
+function Signup({ errors }: SignupPageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [clientErrors, setClientErrors] = useState<
     Partial<Record<keyof SignupFormValues, string>>
   >({});
   const [isAdminSetup] = useState(true);
 
-  const {
-    data,
-    setData,
-    post,
-    processing,
-    errors: formErrors,
-  } = useForm<SignupFormValues>({
+  const { data, setData, post, processing } = useForm<SignupFormValues>({
     email: "",
     password: "",
     password_confirmation: "",
@@ -84,10 +85,10 @@ function Signup({ errors, flash }: SignupPageProps) {
   }
 
   // Merge prop errors (from server) with client errors
-  const emailError = clientErrors.email || formErrors?.email || errors?.email;
-  const passwordError = clientErrors.password || formErrors?.password || errors?.password;
+  const emailError = clientErrors.email || errors?.email;
+  const passwordError = clientErrors.password || errors?.password;
   const confirmPasswordError = clientErrors.password_confirmation;
-  const generalError = formErrors?.general || errors?.general;
+  const generalError = errors?.general;
 
   if (!isAdminSetup) {
     return (
@@ -147,12 +148,6 @@ function Signup({ errors, flash }: SignupPageProps) {
               </div>
             </div>
           </div>
-
-          {flash?.type === "success" && flash.message && (
-            <div className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-600">
-              {flash.message}
-            </div>
-          )}
 
           {generalError && (
             <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">
@@ -255,7 +250,9 @@ function Signup({ errors, flash }: SignupPageProps) {
                 />
               </div>
               {confirmPasswordError && (
-                <p className="mt-1 text-sm text-red-600">{confirmPasswordError}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {confirmPasswordError}
+                </p>
               )}
             </div>
 

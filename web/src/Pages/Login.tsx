@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,43 +10,39 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Link, useForm, usePage } from "@inertiajs/react";
+import { useFlash } from "@/hooks/use-flash";
+import type { PropsWithFlash } from "@/lib/types";
+import { Link, useForm } from "@inertiajs/react";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 
-interface LoginPageProps {
+interface LoginPageProps extends PropsWithFlash {
   errors?: {
     email?: string;
     password?: string;
     general?: string;
   };
-  flash?: {
-    type?: string;
-    message?: string;
-  };
 }
 
 const loginSchema = z.object({
-  email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
+  email: z
+    .email("Please enter a valid email address")
+    .min(1, "Email is required"),
   password: z.string().min(1, "Password is required"),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 function Login({ errors, flash }: LoginPageProps) {
+  useFlash(flash);
+
   const [showPassword, setShowPassword] = useState(false);
   const [clientErrors, setClientErrors] = useState<
     Partial<Record<keyof LoginFormValues, string>>
   >({});
 
-  const {
-    data,
-    setData,
-    post,
-    processing,
-    errors: formErrors,
-  } = useForm<LoginFormValues>({
+  const { data, setData, post, processing } = useForm<LoginFormValues>({
     email: "",
     password: "",
   });
@@ -67,13 +65,9 @@ function Login({ errors, flash }: LoginPageProps) {
     post("/login");
   }
 
-  const emailError = clientErrors.email || formErrors?.email || errors?.email;
-  const passwordError =
-    clientErrors.password || formErrors?.password || errors?.password;
-  const generalError = formErrors?.general || errors?.general;
-
-  // Show flash message from props
-  const showFlash = flash?.type === "success" && flash?.message;
+  const emailError = clientErrors.email || errors?.email;
+  const passwordError = clientErrors.password || errors?.password;
+  const generalError = errors?.general;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 p-4">
@@ -85,12 +79,6 @@ function Login({ errors, flash }: LoginPageProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {showFlash && (
-            <div className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-600">
-              {flash.message}
-            </div>
-          )}
-
           {generalError && (
             <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">
               {generalError}
