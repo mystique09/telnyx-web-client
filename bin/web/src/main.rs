@@ -79,7 +79,7 @@ fn setup_tracing() -> eyre::Result<()> {
 
     set_global_default(subscriber)?;
 
-    info!("[IDATE-EMU] {} v{}", crate_name, crate_version);
+    info!("[TELNYX-WEB] {} v{}", crate_name, crate_version);
     Ok(())
 }
 
