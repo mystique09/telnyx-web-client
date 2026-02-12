@@ -1,4 +1,3 @@
-use actix_inertia::inertia_responder::InertiaResponder;
 use actix_session::Session;
 use actix_web::{HttpRequest, Responder};
 use serde::Serialize;
@@ -6,7 +5,7 @@ use serde::Serialize;
 use crate::{
     dto::FlashProps,
     flash::{clear_flash, extract_flash},
-    inertia::response_with_html,
+    inertia::Page,
 };
 
 #[derive(Debug, Serialize, bon::Builder)]
@@ -23,9 +22,10 @@ pub async fn render_list_conversations(req: HttpRequest, session: Session) -> im
 
     let props = ConversationsPageProps::builder().maybe_flash(flash).build();
 
-    if req.headers().contains_key("x-inertia") {
-        InertiaResponder::new("Conversations", props).respond_to(&req)
-    } else {
-        response_with_html(&req, props, "Conversations".to_string())
-    }
+    Page::builder()
+        .req(req)
+        .name("Conversations")
+        .props(props)
+        .build()
+        .to_responder()
 }

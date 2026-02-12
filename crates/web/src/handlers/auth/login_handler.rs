@@ -9,10 +9,9 @@ use serde::Serialize;
 use crate::flash::extract_flash;
 use crate::session::set_authenticated;
 use crate::{
-    Empty,
     dto::auth::{FlashProps, LoginErrorProps, LoginRequest},
     flash::set_flash,
-    inertia::response_with_html,
+    inertia::Page,
 };
 use application::usecases::login_usecase::LoginUsecase;
 
@@ -48,18 +47,15 @@ impl From<&Report> for LoginErrorProps {
 pub async fn render_login(req: HttpRequest, session: Session) -> impl Responder {
     let flash = extract_flash(&session);
 
-    if req.headers().contains_key("x-inertia") {
-        InertiaResponder::new(
-            "Login",
-            LoginPageProps {
-                errors: None,
-                flash,
-            },
-        )
-        .respond_to(&req)
-    } else {
-        response_with_html(&req, Empty, "Login".to_string())
-    }
+    Page::builder()
+        .req(req)
+        .name("Login")
+        .props(LoginPageProps {
+            errors: None,
+            flash,
+        })
+        .build()
+        .to_responder()
 }
 
 /// Process login form - POST /login

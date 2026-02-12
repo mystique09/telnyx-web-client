@@ -21,7 +21,7 @@ use crate::{
     handlers::{
         auth::build_auth_service, conversations::build_conversations_service, inertia::version,
     },
-    inertia::{dist_dir, is_dev, response_with_html},
+    inertia::{Page, dist_dir, is_dev, response_with_html},
     middlewares::auth::ProtectedMiddleware,
 };
 use application::usecases::create_user_usecase::CreateUserUsecase;
@@ -111,16 +111,12 @@ async fn index(req: HttpRequest, session: Session) -> impl Responder {
         clear_flash(&session);
     }
 
-    if req.headers().contains_key("x-inertia") {
-        InertiaResponder::new("App", HomePageProps::builder().maybe_flash(flash).build())
-            .respond_to(&req)
-    } else {
-        response_with_html(
-            &req,
-            HomePageProps::builder().maybe_flash(flash).build(),
-            "App".to_string(),
-        )
-    }
+    Page::builder()
+        .req(req)
+        .name("App")
+        .props(HomePageProps::builder().maybe_flash(flash).build())
+        .build()
+        .to_responder()
 }
 
 fn error_404_error_handler<B>(res: ServiceResponse<B>) -> Result<ErrorHandlerResponse<B>> {

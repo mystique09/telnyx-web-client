@@ -7,9 +7,8 @@ use serde::Serialize;
 
 use crate::flash::{extract_flash, set_flash};
 use crate::{
-    Empty,
     dto::auth::{FlashProps, SignupErrorProps, SignupRequest},
-    inertia::response_with_html,
+    inertia::Page,
 };
 use application::usecases::create_user_usecase::CreateUserUsecase;
 
@@ -22,18 +21,15 @@ struct SignupPageProps {
 pub async fn render_signup(req: HttpRequest, session: Session) -> impl Responder {
     let flash = extract_flash(&session);
 
-    if req.headers().contains_key("x-inertia") {
-        InertiaResponder::new(
-            "Signup",
-            SignupPageProps {
-                errors: None,
-                flash,
-            },
-        )
-        .respond_to(&req)
-    } else {
-        response_with_html(&req, Empty, "Signup".to_string())
-    }
+    Page::builder()
+        .req(req)
+        .name("Signup")
+        .props(SignupPageProps {
+            errors: None,
+            flash,
+        })
+        .build()
+        .to_responder()
 }
 
 /// Process signup form - POST /auth/signup

@@ -1,9 +1,24 @@
 import { Link, usePage } from "@inertiajs/react";
-import { useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
-import { BarChart3, MessageSquare, SendHorizontal } from "lucide-react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
+import { BarChart3, MessageSquare, PenSquare, SendHorizontal } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Empty,
   EmptyDescription,
@@ -11,6 +26,15 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { useFlash } from "@/hooks/use-flash";
@@ -36,6 +60,34 @@ import {
 } from "@/lib/mock-messaging";
 import type { PropsWithFlash } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+function conversationIdFromPath(url: string): string | null {
+  const path = (url.split("?")[0] ?? "").replace(/\/+$/, "");
+  if (!path.startsWith("/conversations/")) {
+    return null;
+  }
+
+  const idSegment = path.slice("/conversations/".length).split("/")[0];
+  const id = decodeURIComponent(idSegment ?? "");
+
+  if (!id) {
+    return null;
+  }
+
+  return id;
+}
+
+function replaceConversationPath(conversationId: string | null) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const nextPath = conversationId
+    ? `/conversations/${encodeURIComponent(conversationId)}`
+    : "/conversations";
+  window.history.pushState({}, "", nextPath);
+}
 
 function Conversations({ flash }: PropsWithFlash) {
   useFlash(flash);
@@ -45,6 +97,13 @@ function Conversations({ flash }: PropsWithFlash) {
   const [conversations, setConversations] = useState<Conversation[]>(seedConversations);
   const [messageWindows, setMessageWindows] = useState<Record<string, MessageWindow>>({});
   const [messageDraft, setMessageDraft] = useState("");
+  const [isCreateConversationDialogOpen, setIsCreateConversationDialogOpen] = useState(false);
+  const [fromPhoneNumberId, setFromPhoneNumberId] = useState<string>(seedPhoneNumbers[0]?.id ?? "");
+  const [conversationNameInput, setConversationNameInput] = useState("");
+  const [recipientPhoneInput, setRecipientPhoneInput] = useState("");
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(
+    conversationIdFromPath(url),
+  );
 
   const sortedConversations = useMemo(() => {
     return [...conversations].sort((a, b) => {
@@ -67,32 +126,25 @@ function Conversations({ flash }: PropsWithFlash) {
     });
   }, [conversations]);
 
-  const selectedConversationIdFromUrl = useMemo(() => {
-    const path = (url.split("?")[0] ?? "").replace(/\/+$/, "");
-    if (!path.startsWith("/conversations/")) {
-      return null;
-    }
+  useEffect(() => {
+    const handlePopState = () => {
+      setSelectedConversationId(conversationIdFromPath(window.location.pathname));
+    };
 
-    const id_segment = path.slice("/conversations/".length).split("/")[0];
-    const id = decodeURIComponent(id_segment ?? "");
-
-    if (!id) {
-      return null;
-    }
-
-    return sortedConversations.some((conversation) => conversation.id === id) ? id : null;
-  }, [sortedConversations, url]);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const selectedConversation = useMemo(() => {
-    if (!selectedConversationIdFromUrl) {
+    if (!selectedConversationId) {
       return null;
     }
 
     return (
-      sortedConversations.find((conversation) => conversation.id === selectedConversationIdFromUrl) ??
+      sortedConversations.find((conversation) => conversation.id === selectedConversationId) ??
       null
     );
-  }, [selectedConversationIdFromUrl, sortedConversations]);
+  }, [selectedConversationId, sortedConversations]);
 
   const selectedPhoneNumber = useMemo(() => {
     if (!selectedConversation) {
@@ -120,8 +172,8 @@ function Conversations({ flash }: PropsWithFlash) {
       .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime());
   }, [selectedConversation]);
 
-  const selectedWindow = selectedConversationIdFromUrl
-    ? messageWindows[selectedConversationIdFromUrl]
+  const selectedWindow = selectedConversationId
+    ? messageWindows[selectedConversationId]
     : undefined;
 
   const fallbackMessageWindow = useMemo(() => {
@@ -137,17 +189,17 @@ function Conversations({ flash }: PropsWithFlash) {
   const nextCursor = selectedWindow?.nextCursor ?? fallbackMessageWindow?.nextCursor ?? null;
 
   function handleLoadOlderMessages() {
-    if (!selectedConversationIdFromUrl || !nextCursor) {
+    if (!selectedConversationId || !nextCursor) {
       return;
     }
 
-    const conversation = conversations.find((item) => item.id === selectedConversationIdFromUrl);
+    const conversation = conversations.find((item) => item.id === selectedConversationId);
     if (!conversation) {
       return;
     }
 
     setMessageWindows((prev) => {
-      const currentWindow = prev[selectedConversationIdFromUrl] ?? fallbackMessageWindow;
+      const currentWindow = prev[selectedConversationId] ?? fallbackMessageWindow;
       if (!currentWindow || !currentWindow.nextCursor) {
         return prev;
       }
@@ -159,7 +211,7 @@ function Conversations({ flash }: PropsWithFlash) {
 
       return {
         ...prev,
-        [selectedConversationIdFromUrl]: {
+        [selectedConversationId]: {
           messages: [...page, ...currentWindow.messages],
           nextCursor: cursor,
         },
@@ -168,7 +220,7 @@ function Conversations({ flash }: PropsWithFlash) {
   }
 
   function submitMessage() {
-    if (!selectedConversationIdFromUrl) {
+    if (!selectedConversationId) {
       return;
     }
 
@@ -178,7 +230,7 @@ function Conversations({ flash }: PropsWithFlash) {
     }
 
     const activeConversation = conversations.find(
-      (item) => item.id === selectedConversationIdFromUrl,
+      (item) => item.id === selectedConversationId,
     );
     if (!activeConversation) {
       return;
@@ -190,7 +242,7 @@ function Conversations({ flash }: PropsWithFlash) {
 
     const newMessage: Message = {
       id: createClientId("msg"),
-      conversationId: selectedConversationIdFromUrl,
+      conversationId: selectedConversationId,
       userId: USER_ID,
       messageType: "OUTBOUND",
       status: "pending",
@@ -201,7 +253,7 @@ function Conversations({ flash }: PropsWithFlash) {
 
     setConversations((prev) =>
       prev.map((conversation) => {
-        if (conversation.id !== selectedConversationIdFromUrl) {
+        if (conversation.id !== selectedConversationId) {
           return conversation;
         }
 
@@ -213,14 +265,14 @@ function Conversations({ flash }: PropsWithFlash) {
     );
 
     setMessageWindows((prev) => {
-      const currentWindow = prev[selectedConversationIdFromUrl] ?? fallbackMessageWindow;
+      const currentWindow = prev[selectedConversationId] ?? fallbackMessageWindow;
       if (!currentWindow) {
         return prev;
       }
 
       return {
         ...prev,
-        [selectedConversationIdFromUrl]: {
+        [selectedConversationId]: {
           ...currentWindow,
           messages: [...currentWindow.messages, newMessage].sort(compareMessagesAsc),
         },
@@ -240,6 +292,87 @@ function Conversations({ flash }: PropsWithFlash) {
       event.preventDefault();
       submitMessage();
     }
+  }
+
+  function handleSelectConversation(conversationId: string) {
+    setSelectedConversationId(conversationId);
+    replaceConversationPath(conversationId);
+  }
+
+  function handleOpenCreateConversationDialog(open: boolean) {
+    setIsCreateConversationDialogOpen(open);
+    if (!open) {
+      setFromPhoneNumberId(phoneNumbers[0]?.id ?? "");
+      setConversationNameInput("");
+      setRecipientPhoneInput("");
+    }
+  }
+
+  function handleCreateConversation(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const conversationName = conversationNameInput.trim();
+    const recipient = recipientPhoneInput.trim();
+    const selectedPhone = phoneNumbers.find((item) => item.id === fromPhoneNumberId);
+
+    if (!selectedPhone) {
+      toast.error("Select a phone number to send from.");
+      return;
+    }
+
+    if (!/^\+?[1-9]\d{6,14}$/.test(recipient)) {
+      toast.error("Use a valid recipient phone format, for example +14155551234.");
+      return;
+    }
+
+    const existing = conversations.find(
+      (conversation) =>
+        conversation.phoneNumberId === selectedPhone.id &&
+        conversation.counterpartyNumber === recipient,
+    );
+
+    if (existing) {
+      if (conversationName.length > 0 && existing.title !== conversationName) {
+        setConversations((prev) =>
+          prev.map((conversation) =>
+            conversation.id === existing.id
+              ? {
+                  ...conversation,
+                  title: conversationName,
+                }
+              : conversation,
+          ),
+        );
+      }
+      setSelectedConversationId(existing.id);
+      replaceConversationPath(existing.id);
+      handleOpenCreateConversationDialog(false);
+      toast.success("Opened existing conversation.");
+      return;
+    }
+
+    const conversationId = createClientId("conversation");
+    const newConversation: Conversation = {
+      id: conversationId,
+      phoneNumberId: selectedPhone.id,
+      userId: USER_ID,
+      title: conversationName.length > 0 ? conversationName : recipient,
+      counterpartyNumber: recipient,
+      messages: [],
+    };
+
+    setConversations((prev) => [newConversation, ...prev]);
+    setMessageWindows((prev) => ({
+      ...prev,
+      [conversationId]: {
+        messages: [],
+        nextCursor: null,
+      },
+    }));
+    setSelectedConversationId(conversationId);
+    replaceConversationPath(conversationId);
+    handleOpenCreateConversationDialog(false);
+    toast.success("New conversation ready.");
   }
 
   return (
@@ -271,7 +404,76 @@ function Conversations({ flash }: PropsWithFlash) {
           <Separator />
 
           <div className="space-y-2 p-2">
-            <p className="px-2 text-xs font-medium text-muted-foreground">Conversations</p>
+            <div className="flex items-center justify-between px-2">
+              <p className="text-xs font-medium text-muted-foreground">Conversations</p>
+              <Dialog open={isCreateConversationDialogOpen} onOpenChange={handleOpenCreateConversationDialog}>
+                <DialogTrigger asChild>
+                  <Button type="button" size="icon" variant="ghost" className="size-7">
+                    <PenSquare className="size-4" />
+                    <span className="sr-only">New conversation</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>New Conversation</DialogTitle>
+                    <DialogDescription>
+                      Add a name, pick a sending number, then enter recipient phone number.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <form id="new-conversation-form" onSubmit={handleCreateConversation} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="conversation-name">Conversation Name</Label>
+                      <Input
+                        id="conversation-name"
+                        placeholder="Acme Logistics"
+                        value={conversationNameInput}
+                        onChange={(event) => setConversationNameInput(event.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="from-number">From Phone Number</Label>
+                      <Select value={fromPhoneNumberId} onValueChange={setFromPhoneNumberId}>
+                        <SelectTrigger id="from-number" className="w-full">
+                          <SelectValue placeholder="Select a phone number" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {phoneNumbers.map((phoneNumber) => (
+                            <SelectItem key={phoneNumber.id} value={phoneNumber.id}>
+                              {phoneNumber.name} ({phoneNumber.phone})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="recipient-number">Recipient Phone Number</Label>
+                      <Input
+                        id="recipient-number"
+                        placeholder="+14155551234"
+                        value={recipientPhoneInput}
+                        onChange={(event) => setRecipientPhoneInput(event.target.value)}
+                      />
+                    </div>
+                  </form>
+
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleOpenCreateConversationDialog(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" form="new-conversation-form">
+                      Open Chat
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
             {sortedConversations.length === 0 ? (
               <p className="px-2 py-3 text-sm text-muted-foreground">
                 No conversations available.
@@ -279,12 +481,12 @@ function Conversations({ flash }: PropsWithFlash) {
             ) : (
               sortedConversations.map((conversation) => {
                 const latest = getLatestMessage(conversation);
-                const isActive = selectedConversationIdFromUrl === conversation.id;
+                const isActive = selectedConversationId === conversation.id;
                 return (
-                  <Link
+                  <button
                     key={conversation.id}
-                    href={`/conversations/${encodeURIComponent(conversation.id)}`}
-                    preserveScroll
+                    type="button"
+                    onClick={() => handleSelectConversation(conversation.id)}
                     className={cn(
                       "block w-full rounded-lg border px-3 py-2 text-left transition-colors",
                       isActive
@@ -303,7 +505,7 @@ function Conversations({ flash }: PropsWithFlash) {
                     <p className="mt-1 truncate text-xs text-muted-foreground">
                       {latest?.content ?? "No messages yet"}
                     </p>
-                  </Link>
+                  </button>
                 );
               })
             )}

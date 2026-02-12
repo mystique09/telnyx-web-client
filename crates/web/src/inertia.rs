@@ -1,8 +1,32 @@
 use std::{fs::read_to_string, path::PathBuf};
 
 use crate::types::DataPage;
-use actix_web::{HttpRequest, HttpResponse};
+use actix_inertia::inertia_responder::InertiaResponder;
+use actix_web::{HttpRequest, HttpResponse, Responder};
 use serde::Serialize;
+
+#[derive(Debug, bon::Builder)]
+pub struct Page<'a, P>
+where
+    P: Serialize,
+{
+    req: HttpRequest,
+    name: &'a str,
+    props: P,
+}
+
+impl<'a, P> Page<'a, P>
+where
+    P: Serialize,
+{
+    pub fn to_responder(self) -> impl Responder {
+        if self.req.headers().contains_key("x-inertia") {
+            InertiaResponder::new(self.name, self.props).respond_to(&self.req)
+        } else {
+            response_with_html(&self.req, self.props, self.name.to_string())
+        }
+    }
+}
 
 pub(crate) fn is_dev() -> bool {
     std::env::var("MODE").ok().as_deref() == Some("development")
