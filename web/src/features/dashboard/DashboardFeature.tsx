@@ -2,9 +2,14 @@ import { AnalyticsOverview } from "./components/AnalyticsOverview";
 import { DashboardSidebar } from "./components/DashboardSidebar";
 import { PhoneNumbersCard } from "./components/PhoneNumbersCard";
 import { useDashboardController } from "./hooks/use-dashboard-controller";
+import type { DashboardPageProps } from "./types";
 
-function DashboardFeature() {
-  const controller = useDashboardController();
+type DashboardFeatureProps = {
+  pageProps: DashboardPageProps;
+};
+
+function DashboardFeature({ pageProps }: DashboardFeatureProps) {
+  const controller = useDashboardController(pageProps);
 
   return (
     <div className="h-screen w-full bg-background">
@@ -19,14 +24,14 @@ function DashboardFeature() {
             <div>
               <h1 className="text-2xl font-semibold">Dashboard Analytics</h1>
               <p className="text-sm text-muted-foreground">
-                Placeholder analytics for now. Backend wiring can be added later.
+                Live account totals from your current workspace data.
               </p>
             </div>
 
             <AnalyticsOverview
               totalConversations={controller.totalConversations}
               totalMessages={controller.totalMessages}
-              totalPhoneNumbers={controller.phoneNumbers.length}
+              totalPhoneNumbers={controller.totalPhoneNumbers}
             />
 
             <PhoneNumbersCard

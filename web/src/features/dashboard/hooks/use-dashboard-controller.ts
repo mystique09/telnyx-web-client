@@ -1,28 +1,24 @@
-import { router, useForm, usePage } from "@inertiajs/react";
+import { router, useForm } from "@inertiajs/react";
 import { useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import type { PhoneValidationResult } from "@/components/ui/phone-input";
-import {
-  seedConversations,
-  type PhoneNumber,
-} from "@/lib/mock-messaging";
+import type { PhoneNumber } from "@/lib/mock-messaging";
 import type { DashboardPageProps } from "../types";
 
-export function useDashboardController() {
-  const { props } = usePage<DashboardPageProps>();
-
+export function useDashboardController(props: DashboardPageProps) {
   const { post: postLogout, processing: isLoggingOut } = useForm({});
   const [isCreatingPhoneNumber, setIsCreatingPhoneNumber] = useState(false);
 
   const phoneNumbers = useMemo<PhoneNumber[]>(
-    () =>
-      (props.phoneNumbers ?? []).map((item) => ({
+    () => {
+      return props.phoneNumbers.map((item) => ({
         id: item.id,
         userId: item.userId,
         name: item.name,
         phone: item.phone,
-      })),
+      }));
+    },
     [props.phoneNumbers],
   );
   const [phoneNameInput, setPhoneNameInput] = useState("");
@@ -30,13 +26,6 @@ export function useDashboardController() {
   const [phoneValidation, setPhoneValidation] =
     useState<PhoneValidationResult | null>(null);
   const [isAddPhoneDialogOpen, setIsAddPhoneDialogOpen] = useState(false);
-
-  const totalMessages = useMemo(() => {
-    return seedConversations.reduce(
-      (total, conversation) => total + conversation.messages.length,
-      0,
-    );
-  }, []);
 
   function resetAddPhoneForm() {
     setPhoneNameInput("");
@@ -98,8 +87,9 @@ export function useDashboardController() {
   return {
     isLoggingOut,
     logout,
-    totalConversations: seedConversations.length,
-    totalMessages,
+    totalConversations: props.analytics.totalConversations,
+    totalMessages: props.analytics.totalMessages,
+    totalPhoneNumbers: props.analytics.totalPhoneNumbers,
     phoneNumbers,
     isCreatingPhoneNumber,
     isAddPhoneDialogOpen,

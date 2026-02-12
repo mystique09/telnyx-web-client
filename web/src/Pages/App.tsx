@@ -1,11 +1,12 @@
 import DashboardFeature from "@/features/dashboard/DashboardFeature";
+import type { DashboardPageProps } from "@/features/dashboard/types";
 import { useFlash } from "@/hooks/use-flash";
-import type { PropsWithFlash } from "@/lib/types";
 
-function App({ flash }: PropsWithFlash) {
+function App(props: DashboardPageProps) {
+  const { flash } = props;
   useFlash(flash);
 
-  return <DashboardFeature />;
+  return <DashboardFeature pageProps={props} />;
 }
 
 export default App;

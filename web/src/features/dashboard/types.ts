@@ -9,7 +9,14 @@ export interface DashboardPhoneNumberRecord {
   updatedAt: string;
 }
 
+export interface DashboardAnalyticsRecord {
+  totalConversations: number;
+  totalMessages: number;
+  totalPhoneNumbers: number;
+}
+
 export interface DashboardPageProps extends PropsWithFlash {
   [key: string]: unknown;
-  phoneNumbers?: DashboardPhoneNumberRecord[];
+  analytics: DashboardAnalyticsRecord;
+  phoneNumbers: DashboardPhoneNumberRecord[];
 }

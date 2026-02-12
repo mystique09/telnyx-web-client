@@ -17,7 +17,7 @@ use tracing::error;
 
 use crate::{
     Empty,
-    dto::FlashProps,
+    dto::{DashboardAnalyticsProps, FlashProps},
     flash::{clear_flash, extract_flash},
     handlers::{
         auth::build_auth_service, conversations::build_conversations_service, inertia::version,
@@ -30,6 +30,7 @@ use crate::{
 use application::usecases::create_user_usecase::CreateUserUsecase;
 use application::usecases::login_usecase::LoginUsecase;
 use domain::repositories::conversation_repository::ConversationRepository;
+use domain::repositories::message_repository::MessageRepository;
 use domain::repositories::phone_number_repository::PhoneNumberRepository;
 use domain::repositories::user_repository::UserRepository;
 use domain::traits::password_hasher::PasswordHasher;
@@ -39,6 +40,7 @@ pub fn create_web_service(
     session_secret: String,
     user_repository: Arc<dyn UserRepository>,
     conversation_repository: Arc<dyn ConversationRepository>,
+    message_repository: Arc<dyn MessageRepository>,
     phone_number_repository: Arc<dyn PhoneNumberRepository>,
     password_hasher: Arc<dyn PasswordHasher>,
     token_service: Arc<dyn TokenService>,
@@ -88,6 +90,7 @@ pub fn create_web_service(
         .app_data(web::Data::new(create_user_usecase))
         .app_data(web::Data::new(login_usecase))
         .app_data(web::Data::new(conversation_repository))
+        .app_data(web::Data::new(message_repository))
         .app_data(web::Data::new(phone_number_repository))
         .app_data(web::Data::new(token_service.clone()))
         .route("/", web::get().to(index).wrap(ProtectedMiddleware::new()))
@@ -114,11 +117,14 @@ pub fn create_web_service(
 struct HomePageProps {
     pub flash: Option<FlashProps>,
     pub phone_numbers: Vec<crate::dto::PhoneNumberProps>,
+    pub analytics: DashboardAnalyticsProps,
 }
 
 async fn index(
     req: HttpRequest,
     session: Session,
+    conversation_repository: web::Data<Arc<dyn ConversationRepository>>,
+    message_repository: web::Data<Arc<dyn MessageRepository>>,
     phone_number_repository: web::Data<Arc<dyn PhoneNumberRepository>>,
 ) -> impl Responder {
     let flash = extract_flash(&session);
@@ -127,18 +133,59 @@ async fn index(
         clear_flash(&session);
     }
 
-    let phone_numbers = match session_user_id(&session) {
-        Some(user_id) => match phone_number_repository.list_by_user_id(&user_id).await {
-            Ok(items) => items
-                .iter()
-                .map(crate::dto::PhoneNumberProps::from)
-                .collect(),
-            Err(err) => {
-                error!("failed to list phone numbers for user {}: {}", user_id, err);
-                Vec::new()
-            }
-        },
-        None => Vec::new(),
+    let (phone_numbers, analytics) = match session_user_id(&session) {
+        Some(user_id) => {
+            let (conversations_result, total_messages_result, phone_numbers_result) =
+                futures_util::future::join3(
+                    conversation_repository.list_by_user_id(&user_id),
+                    message_repository.count_by_user_id(&user_id),
+                    phone_number_repository.list_by_user_id(&user_id),
+                )
+                .await;
+
+            let conversations = match conversations_result {
+                Ok(items) => items,
+                Err(err) => {
+                    error!("failed to list conversations for user {}: {}", user_id, err);
+                    Vec::new()
+                }
+            };
+
+            let total_messages = match total_messages_result {
+                Ok(total) => total,
+                Err(err) => {
+                    error!("failed to count messages for user {}: {}", user_id, err);
+                    0
+                }
+            };
+
+            let phone_numbers = match phone_numbers_result {
+                Ok(items) => items
+                    .iter()
+                    .map(crate::dto::PhoneNumberProps::from)
+                    .collect::<Vec<_>>(),
+                Err(err) => {
+                    error!("failed to list phone numbers for user {}: {}", user_id, err);
+                    Vec::new()
+                }
+            };
+
+            let analytics = DashboardAnalyticsProps::builder()
+                .total_conversations(conversations.len() as u64)
+                .total_messages(total_messages)
+                .total_phone_numbers(phone_numbers.len() as u64)
+                .build();
+
+            (phone_numbers, analytics)
+        }
+        None => (
+            Vec::new(),
+            DashboardAnalyticsProps::builder()
+                .total_conversations(0)
+                .total_messages(0)
+                .total_phone_numbers(0)
+                .build(),
+        ),
     };
 
     Page::builder()
@@ -148,6 +195,7 @@ async fn index(
             HomePageProps::builder()
                 .maybe_flash(flash)
                 .phone_numbers(phone_numbers)
+                .analytics(analytics)
                 .build(),
         )
         .build()

@@ -6,6 +6,7 @@ use infrastructure::{
     database::{migrator::migrator, pool::create_db_pool},
     repositories::{
         conversation_repository_impl::ConversationRepositoryImpl,
+        message_repository_impl::MessageRepositoryImpl,
         phone_number_repository_impl::PhoneNumberRepositoryImpl,
         user_repository_impl::UserRepositoryImpl,
     },
@@ -35,6 +36,7 @@ async fn main() -> eyre::Result<()> {
             .pool(pool.clone())
             .build(),
     );
+    let message_repository = Arc::new(MessageRepositoryImpl::builder().pool(pool.clone()).build());
     let phone_number_repository = Arc::new(PhoneNumberRepositoryImpl::builder().pool(pool).build());
     let password_hasher = Arc::new(Argon2Hasher::new());
     let token_service = Arc::new(PasetoAuthenticationTokenService::new(
@@ -48,6 +50,7 @@ async fn main() -> eyre::Result<()> {
             session_secret,
             user_repository.clone(),
             conversation_repository.clone(),
+            message_repository.clone(),
             phone_number_repository.clone(),
             password_hasher.clone(),
             token_service.clone(),
