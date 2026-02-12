@@ -1,5 +1,6 @@
 use domain::repositories::RepositoryError;
 
+pub mod conversation_repository_impl;
 pub mod user_repository_impl;
 
 pub trait RbsErrorExt {

@@ -25,3 +25,4 @@ bon.workspace = true
 uuid.workspace = true
 garde.workspace = true
 futures-util.workspace = true
+time.workspace = true

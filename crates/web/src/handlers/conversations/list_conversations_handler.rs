@@ -1,31 +1,54 @@
+use std::sync::Arc;
+
 use actix_session::Session;
-use actix_web::{HttpRequest, Responder};
+use actix_web::{HttpRequest, Responder, web};
+use domain::repositories::conversation_repository::ConversationRepository;
 use serde::Serialize;
+use tracing::error;
 
 use crate::{
-    dto::FlashProps,
-    flash::{clear_flash, extract_flash},
+    dto::{ConversationProps, FlashProps},
+    flash::extract_flash,
     inertia::Page,
+    session::get_user_id,
 };
 
-#[derive(Debug, Serialize, bon::Builder)]
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 struct ConversationsPageProps {
     pub flash: Option<FlashProps>,
+    pub conversations: Vec<ConversationProps>,
 }
 
-pub async fn render_list_conversations(req: HttpRequest, session: Session) -> impl Responder {
+pub async fn render_list_conversations(
+    req: HttpRequest,
+    session: Session,
+    conversation_repository: web::Data<Arc<dyn ConversationRepository>>,
+) -> impl Responder {
     let flash = extract_flash(&session);
 
-    if flash.is_some() {
-        clear_flash(&session);
-    }
-
-    let props = ConversationsPageProps::builder().maybe_flash(flash).build();
+    let conversations = match session_user_id(&session) {
+        Some(user_id) => match conversation_repository.list_by_user_id(&user_id).await {
+            Ok(items) => items.iter().map(ConversationProps::from).collect(),
+            Err(err) => {
+                error!("failed to list conversations for user {}: {}", user_id, err);
+                Vec::new()
+            }
+        },
+        None => Vec::new(),
+    };
 
     Page::builder()
         .req(req)
         .name("Conversations")
-        .props(props)
+        .props(ConversationsPageProps {
+            flash,
+            conversations,
+        })
         .build()
         .to_responder()
+}
+
+fn session_user_id(session: &Session) -> Option<uuid::Uuid> {
+    get_user_id(session).and_then(|id| uuid::Uuid::parse_str(&id).ok())
 }

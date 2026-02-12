@@ -26,6 +26,7 @@ use crate::{
 };
 use application::usecases::create_user_usecase::CreateUserUsecase;
 use application::usecases::login_usecase::LoginUsecase;
+use domain::repositories::conversation_repository::ConversationRepository;
 use domain::repositories::user_repository::UserRepository;
 use domain::traits::password_hasher::PasswordHasher;
 use domain::traits::token_service::TokenService;
@@ -33,6 +34,7 @@ use domain::traits::token_service::TokenService;
 pub fn create_web_service(
     session_secret: String,
     user_repository: Arc<dyn UserRepository>,
+    conversation_repository: Arc<dyn ConversationRepository>,
     password_hasher: Arc<dyn PasswordHasher>,
     token_service: Arc<dyn TokenService>,
 ) -> App<
@@ -80,6 +82,7 @@ pub fn create_web_service(
         .wrap(ErrorHandlers::new().handler(StatusCode::NOT_FOUND, error_404_error_handler))
         .app_data(web::Data::new(create_user_usecase))
         .app_data(web::Data::new(login_usecase))
+        .app_data(web::Data::new(conversation_repository))
         .app_data(web::Data::new(token_service.clone()))
         .route("/", web::get().to(index).wrap(ProtectedMiddleware::new()))
         .service(build_conversations_service())
