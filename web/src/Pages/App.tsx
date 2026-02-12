@@ -1,7 +1,7 @@
-import { Link } from "@inertiajs/react";
+import { Link, useForm } from "@inertiajs/react";
 import { useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { BarChart3, MessageSquare, Phone, Plus } from "lucide-react";
+import { BarChart3, LogOut, MessageSquare, Phone, Plus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import type { PropsWithFlash } from "@/lib/types";
 
 function App({ flash }: PropsWithFlash) {
   useFlash(flash);
+  const { post: postLogout, processing: isLoggingOut } = useForm({});
 
   const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>(seedPhoneNumbers);
   const [phoneNameInput, setPhoneNameInput] = useState("");
@@ -99,6 +100,16 @@ function App({ flash }: PropsWithFlash) {
                   <MessageSquare className="size-4" />
                   Conversations
                 </Link>
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full justify-start gap-2"
+                onClick={() => postLogout("/auth/logout")}
+                disabled={isLoggingOut}
+              >
+                <LogOut className="size-4" />
+                {isLoggingOut ? "Logging out..." : "Logout"}
               </Button>
             </div>
           </div>

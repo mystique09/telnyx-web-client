@@ -1,4 +1,4 @@
-import { Link, usePage } from "@inertiajs/react";
+import { Link, useForm, usePage } from "@inertiajs/react";
 import {
   useEffect,
   useMemo,
@@ -6,7 +6,13 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from "react";
-import { BarChart3, MessageSquare, PenSquare, SendHorizontal } from "lucide-react";
+import {
+  BarChart3,
+  LogOut,
+  MessageSquare,
+  PenSquare,
+  SendHorizontal,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -91,6 +97,7 @@ function replaceConversationPath(conversationId: string | null) {
 
 function Conversations({ flash }: PropsWithFlash) {
   useFlash(flash);
+  const { post: postLogout, processing: isLoggingOut } = useForm({});
 
   const { url } = usePage();
   const [phoneNumbers] = useState<PhoneNumber[]>(seedPhoneNumbers);
@@ -397,6 +404,16 @@ function Conversations({ flash }: PropsWithFlash) {
                   <MessageSquare className="size-4" />
                   Conversations
                 </Link>
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full justify-start gap-2"
+                onClick={() => postLogout("/auth/logout")}
+                disabled={isLoggingOut}
+              >
+                <LogOut className="size-4" />
+                {isLoggingOut ? "Logging out..." : "Logout"}
               </Button>
             </div>
           </div>

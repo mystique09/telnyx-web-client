@@ -1,3 +1,4 @@
+use crate::session::clear_authenticated;
 use actix_session::SessionExt;
 use actix_web::{
     Responder,
@@ -141,9 +142,7 @@ where
                     );
 
                     if validation_result.is_err() {
-                        let _ = session.remove("authenticated");
-                        let _ = session.remove("user_id");
-                        let _ = session.remove("access_token");
+                        clear_authenticated(&session);
 
                         let response = Redirect::to("/auth/login")
                             .see_other()
