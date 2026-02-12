@@ -29,6 +29,7 @@ type ConversationsSidebarProps = {
   recipientPhoneInput: string;
   onRecipientPhoneInputChange: (recipient: string) => void;
   onCreateConversation: (event: FormEvent<HTMLFormElement>) => void;
+  isCreatingConversation: boolean;
 };
 
 export function ConversationsSidebar({
@@ -47,6 +48,7 @@ export function ConversationsSidebar({
   recipientPhoneInput,
   onRecipientPhoneInputChange,
   onCreateConversation,
+  isCreatingConversation,
 }: ConversationsSidebarProps) {
   return (
     <aside className="w-full border-b bg-card md:w-80 md:border-r md:border-b-0">
@@ -98,6 +100,7 @@ export function ConversationsSidebar({
             recipientPhoneInput={recipientPhoneInput}
             onRecipientPhoneInputChange={onRecipientPhoneInputChange}
             onCreateConversation={onCreateConversation}
+            isCreatingConversation={isCreatingConversation}
           />
         </div>
 

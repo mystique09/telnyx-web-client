@@ -15,6 +15,7 @@ import { AddPhoneNumberDialog } from "./AddPhoneNumberDialog";
 
 type PhoneNumbersCardProps = {
   phoneNumbers: PhoneNumber[];
+  isCreatingPhoneNumber: boolean;
   isAddPhoneDialogOpen: boolean;
   onOpenAddPhoneDialog: (open: boolean) => void;
   phoneNameInput: string;
@@ -27,6 +28,7 @@ type PhoneNumbersCardProps = {
 
 export function PhoneNumbersCard({
   phoneNumbers,
+  isCreatingPhoneNumber,
   isAddPhoneDialogOpen,
   onOpenAddPhoneDialog,
   phoneNameInput,
@@ -48,6 +50,7 @@ export function PhoneNumbersCard({
           <AddPhoneNumberDialog
             open={isAddPhoneDialogOpen}
             onOpenChange={onOpenAddPhoneDialog}
+            isCreatingPhoneNumber={isCreatingPhoneNumber}
             phoneNameInput={phoneNameInput}
             onPhoneNameInputChange={onPhoneNameInputChange}
             phoneValueInput={phoneValueInput}

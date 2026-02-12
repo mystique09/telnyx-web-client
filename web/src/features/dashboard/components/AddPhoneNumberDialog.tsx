@@ -21,6 +21,7 @@ import {
 type AddPhoneNumberDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  isCreatingPhoneNumber: boolean;
   phoneNameInput: string;
   onPhoneNameInputChange: (value: string) => void;
   phoneValueInput: string;
@@ -32,6 +33,7 @@ type AddPhoneNumberDialogProps = {
 export function AddPhoneNumberDialog({
   open,
   onOpenChange,
+  isCreatingPhoneNumber,
   phoneNameInput,
   onPhoneNameInputChange,
   phoneValueInput,
@@ -42,7 +44,7 @@ export function AddPhoneNumberDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button type="button" size="sm" className="gap-2">
+        <Button type="button" size="sm" className="gap-2" disabled={isCreatingPhoneNumber}>
           <Plus className="size-4" />
           Add number
         </Button>
@@ -86,9 +88,14 @@ export function AddPhoneNumberDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="submit" form="add-phone-number-form" className="gap-2">
+          <Button
+            type="submit"
+            form="add-phone-number-form"
+            className="gap-2"
+            disabled={isCreatingPhoneNumber}
+          >
             <Plus className="size-4" />
-            Save Number
+            {isCreatingPhoneNumber ? "Saving..." : "Save Number"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -25,6 +25,7 @@ import type { PhoneNumber } from "@/lib/mock-messaging";
 type CreateConversationDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  isCreatingConversation: boolean;
   phoneNumbers: PhoneNumber[];
   fromPhoneNumberId: string;
   onFromPhoneNumberIdChange: (phoneNumberId: string) => void;
@@ -38,6 +39,7 @@ type CreateConversationDialogProps = {
 export function CreateConversationDialog({
   open,
   onOpenChange,
+  isCreatingConversation,
   phoneNumbers,
   fromPhoneNumberId,
   onFromPhoneNumberIdChange,
@@ -50,7 +52,13 @@ export function CreateConversationDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button type="button" size="icon" variant="ghost" className="size-7">
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="size-7"
+          disabled={isCreatingConversation}
+        >
           <PenSquare className="size-4" />
           <span className="sr-only">New conversation</span>
         </Button>
@@ -112,11 +120,20 @@ export function CreateConversationDialog({
         </form>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isCreatingConversation}
+          >
             Cancel
           </Button>
-          <Button type="submit" form="new-conversation-form">
-            Open Chat
+          <Button
+            type="submit"
+            form="new-conversation-form"
+            disabled={isCreatingConversation}
+          >
+            {isCreatingConversation ? "Opening..." : "Open Chat"}
           </Button>
         </DialogFooter>
       </DialogContent>

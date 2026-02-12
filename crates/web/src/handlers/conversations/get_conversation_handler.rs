@@ -4,11 +4,12 @@ use actix_session::Session;
 use actix_web::{HttpRequest, Responder, web};
 use domain::repositories::RepositoryError;
 use domain::repositories::conversation_repository::ConversationRepository;
+use domain::repositories::phone_number_repository::PhoneNumberRepository;
 use serde::Serialize;
 use tracing::error;
 
 use crate::{
-    dto::{ConversationProps, FlashProps},
+    dto::{ConversationProps, FlashProps, PhoneNumberProps},
     flash::extract_flash,
     inertia::Page,
     session::get_user_id,
@@ -20,6 +21,7 @@ struct ConversationPageProps {
     pub flash: Option<FlashProps>,
     pub conversations: Vec<ConversationProps>,
     pub conversation: Option<ConversationProps>,
+    pub phone_numbers: Vec<PhoneNumberProps>,
 }
 
 pub async fn render_get_conversation(
@@ -27,11 +29,12 @@ pub async fn render_get_conversation(
     path: web::Path<uuid::Uuid>,
     session: Session,
     conversation_repository: web::Data<Arc<dyn ConversationRepository>>,
+    phone_number_repository: web::Data<Arc<dyn PhoneNumberRepository>>,
 ) -> impl Responder {
     let conversation_id = path.into_inner();
     let flash = extract_flash(&session);
 
-    let (conversation, conversations) = match session_user_id(&session) {
+    let (conversation, conversations, phone_numbers) = match session_user_id(&session) {
         Some(user_id) => {
             let conversation = match conversation_repository
                 .find_by_id(&user_id, &conversation_id)
@@ -56,9 +59,17 @@ pub async fn render_get_conversation(
                 }
             };
 
-            (conversation, conversations)
+            let phone_numbers = match phone_number_repository.list_by_user_id(&user_id).await {
+                Ok(items) => items.iter().map(PhoneNumberProps::from).collect(),
+                Err(err) => {
+                    error!("failed to list phone numbers for user {}: {}", user_id, err);
+                    Vec::new()
+                }
+            };
+
+            (conversation, conversations, phone_numbers)
         }
-        None => (None, Vec::new()),
+        None => (None, Vec::new(), Vec::new()),
     };
 
     Page::builder()
@@ -68,6 +79,7 @@ pub async fn render_get_conversation(
             flash,
             conversations,
             conversation,
+            phone_numbers,
         })
         .build()
         .to_responder()

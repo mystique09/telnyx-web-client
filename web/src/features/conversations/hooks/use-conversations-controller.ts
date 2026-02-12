@@ -1,4 +1,4 @@
-import { useForm, usePage } from "@inertiajs/react";
+import { router, useForm, usePage } from "@inertiajs/react";
 import {
   useEffect,
   useMemo,
@@ -13,8 +13,6 @@ import {
   createClientId,
   getLatestMessage,
   paginateMessages,
-  seedConversations,
-  seedPhoneNumbers,
   type Conversation,
   type Message,
   type MessageWindow,
@@ -22,6 +20,7 @@ import {
   type SentMediaItem,
   USER_ID,
 } from "@/lib/mock-messaging";
+import type { ConversationsPageProps } from "../types";
 import {
   conversationIdFromPath,
   replaceConversationPath,
@@ -31,11 +30,39 @@ const E164_PHONE_PATTERN = /^\+?[1-9]\d{6,14}$/;
 
 export function useConversationsController() {
   const { post: postLogout, processing: isLoggingOut } = useForm({});
-  const { url } = usePage();
+  const { props, url } = usePage<ConversationsPageProps>();
+  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
 
-  const [phoneNumbers] = useState<PhoneNumber[]>(seedPhoneNumbers);
+  const phoneNumbers = useMemo<PhoneNumber[]>(
+    () =>
+      (props.phoneNumbers ?? []).map((item) => ({
+        id: item.id,
+        userId: item.userId,
+        name: item.name,
+        phone: item.phone,
+      })),
+    [props.phoneNumbers],
+  );
+
+  const conversationsFromProps = useMemo<Conversation[]>(() => {
+    const phoneById = new Map(phoneNumbers.map((item) => [item.id, item]));
+
+    return (props.conversations ?? []).map((item) => {
+      const phoneNumber = phoneById.get(item.phoneNumberId);
+
+      return {
+        id: item.id,
+        phoneNumberId: item.phoneNumberId,
+        userId: item.userId,
+        title: phoneNumber?.name ?? `Conversation ${item.id.slice(0, 8)}`,
+        counterpartyNumber: phoneNumber?.phone ?? "Unknown",
+        messages: [],
+      };
+    });
+  }, [phoneNumbers, props.conversations]);
+
   const [conversations, setConversations] =
-    useState<Conversation[]>(seedConversations);
+    useState<Conversation[]>(conversationsFromProps);
   const [messageWindows, setMessageWindows] = useState<
     Record<string, MessageWindow>
   >({});
@@ -43,13 +70,27 @@ export function useConversationsController() {
   const [isCreateConversationDialogOpen, setIsCreateConversationDialogOpen] =
     useState(false);
   const [fromPhoneNumberId, setFromPhoneNumberId] = useState<string>(
-    seedPhoneNumbers[0]?.id ?? "",
+    phoneNumbers[0]?.id ?? "",
   );
   const [conversationNameInput, setConversationNameInput] = useState("");
   const [recipientPhoneInput, setRecipientPhoneInput] = useState("");
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | null
   >(conversationIdFromPath(url));
+
+  useEffect(() => {
+    setConversations(conversationsFromProps);
+  }, [conversationsFromProps]);
+
+  useEffect(() => {
+    if (!phoneNumbers.some((item) => item.id === fromPhoneNumberId)) {
+      setFromPhoneNumberId(phoneNumbers[0]?.id ?? "");
+    }
+  }, [fromPhoneNumberId, phoneNumbers]);
+
+  useEffect(() => {
+    setSelectedConversationId(conversationIdFromPath(url));
+  }, [url]);
 
   const sortedConversations = useMemo(() => {
     return [...conversations].sort((a, b) => {
@@ -269,7 +310,6 @@ export function useConversationsController() {
   function createConversation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const conversationName = conversationNameInput.trim();
     const recipient = recipientPhoneInput.trim();
     const selectedPhone = phoneNumbers.find((item) => item.id === fromPhoneNumberId);
 
@@ -283,55 +323,25 @@ export function useConversationsController() {
       return;
     }
 
-    const existing = conversations.find(
-      (conversation) =>
-        conversation.phoneNumberId === selectedPhone.id &&
-        conversation.counterpartyNumber === recipient,
-    );
-
-    if (existing) {
-      if (conversationName.length > 0 && existing.title !== conversationName) {
-        setConversations((prev) =>
-          prev.map((conversation) =>
-            conversation.id === existing.id
-              ? {
-                  ...conversation,
-                  title: conversationName,
-                }
-              : conversation,
-          ),
-        );
-      }
-
-      setSelectedConversationId(existing.id);
-      replaceConversationPath(existing.id);
-      openCreateConversationDialog(false);
-      toast.success("Opened existing conversation.");
-      return;
-    }
-
-    const conversationId = createClientId("conversation");
-    const newConversation: Conversation = {
-      id: conversationId,
-      phoneNumberId: selectedPhone.id,
-      userId: USER_ID,
-      title: conversationName.length > 0 ? conversationName : recipient,
-      counterpartyNumber: recipient,
-      messages: [],
-    };
-
-    setConversations((prev) => [newConversation, ...prev]);
-    setMessageWindows((prev) => ({
-      ...prev,
-      [conversationId]: {
-        messages: [],
-        nextCursor: null,
+    setIsCreatingConversation(true);
+    router.post(
+      "/conversations",
+      {
+        phoneNumberId: selectedPhone.id,
       },
-    }));
-    setSelectedConversationId(conversationId);
-    replaceConversationPath(conversationId);
-    openCreateConversationDialog(false);
-    toast.success("New conversation ready.");
+      {
+        preserveScroll: true,
+        onSuccess: () => {
+          openCreateConversationDialog(false);
+        },
+        onError: () => {
+          toast.error("Unable to create conversation right now.");
+        },
+        onFinish: () => {
+          setIsCreatingConversation(false);
+        },
+      },
+    );
   }
 
   function logout() {
@@ -354,6 +364,7 @@ export function useConversationsController() {
     recipientPhoneInput,
     setRecipientPhoneInput,
     createConversation,
+    isCreatingConversation,
     hasConversations: sortedConversations.length > 0,
     selectedConversation,
     selectedPhoneNumber,

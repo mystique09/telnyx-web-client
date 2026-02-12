@@ -13,6 +13,7 @@ use actix_web::{
     web,
 };
 use serde::Serialize;
+use tracing::error;
 
 use crate::{
     Empty,
@@ -24,6 +25,7 @@ use crate::{
     },
     inertia::{Page, dist_dir, is_dev, response_with_html},
     middlewares::auth::ProtectedMiddleware,
+    session::get_user_id,
 };
 use application::usecases::create_user_usecase::CreateUserUsecase;
 use application::usecases::login_usecase::LoginUsecase;
@@ -108,23 +110,52 @@ pub fn create_web_service(
 }
 
 #[derive(Debug, Serialize, bon::Builder)]
+#[serde(rename_all = "camelCase")]
 struct HomePageProps {
     pub flash: Option<FlashProps>,
+    pub phone_numbers: Vec<crate::dto::PhoneNumberProps>,
 }
 
-async fn index(req: HttpRequest, session: Session) -> impl Responder {
+async fn index(
+    req: HttpRequest,
+    session: Session,
+    phone_number_repository: web::Data<Arc<dyn PhoneNumberRepository>>,
+) -> impl Responder {
     let flash = extract_flash(&session);
 
     if flash.is_some() {
         clear_flash(&session);
     }
 
+    let phone_numbers = match session_user_id(&session) {
+        Some(user_id) => match phone_number_repository.list_by_user_id(&user_id).await {
+            Ok(items) => items
+                .iter()
+                .map(crate::dto::PhoneNumberProps::from)
+                .collect(),
+            Err(err) => {
+                error!("failed to list phone numbers for user {}: {}", user_id, err);
+                Vec::new()
+            }
+        },
+        None => Vec::new(),
+    };
+
     Page::builder()
         .req(req)
         .name("App")
-        .props(HomePageProps::builder().maybe_flash(flash).build())
+        .props(
+            HomePageProps::builder()
+                .maybe_flash(flash)
+                .phone_numbers(phone_numbers)
+                .build(),
+        )
         .build()
         .to_responder()
+}
+
+fn session_user_id(session: &Session) -> Option<uuid::Uuid> {
+    get_user_id(session).and_then(|id| uuid::Uuid::parse_str(&id).ok())
 }
 
 fn error_404_error_handler<B>(res: ServiceResponse<B>) -> Result<ErrorHandlerResponse<B>> {

@@ -24,6 +24,7 @@ function ConversationsFeature() {
           recipientPhoneInput={controller.recipientPhoneInput}
           onRecipientPhoneInputChange={controller.setRecipientPhoneInput}
           onCreateConversation={controller.createConversation}
+          isCreatingConversation={controller.isCreatingConversation}
         />
 
         <main className="flex flex-1 flex-col overflow-hidden">

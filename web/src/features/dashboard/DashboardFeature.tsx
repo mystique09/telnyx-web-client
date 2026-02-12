@@ -31,6 +31,7 @@ function DashboardFeature() {
 
             <PhoneNumbersCard
               phoneNumbers={controller.phoneNumbers}
+              isCreatingPhoneNumber={controller.isCreatingPhoneNumber}
               isAddPhoneDialogOpen={controller.isAddPhoneDialogOpen}
               onOpenAddPhoneDialog={controller.openAddPhoneDialog}
               phoneNameInput={controller.phoneNameInput}

@@ -1,21 +1,30 @@
-import { useForm } from "@inertiajs/react";
+import { router, useForm, usePage } from "@inertiajs/react";
 import { useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import type { PhoneValidationResult } from "@/components/ui/phone-input";
 import {
-  createClientId,
   seedConversations,
-  seedPhoneNumbers,
   type PhoneNumber,
-  USER_ID,
 } from "@/lib/mock-messaging";
+import type { DashboardPageProps } from "../types";
 
 export function useDashboardController() {
-  const { post: postLogout, processing: isLoggingOut } = useForm({});
+  const { props } = usePage<DashboardPageProps>();
 
-  const [phoneNumbers, setPhoneNumbers] =
-    useState<PhoneNumber[]>(seedPhoneNumbers);
+  const { post: postLogout, processing: isLoggingOut } = useForm({});
+  const [isCreatingPhoneNumber, setIsCreatingPhoneNumber] = useState(false);
+
+  const phoneNumbers = useMemo<PhoneNumber[]>(
+    () =>
+      (props.phoneNumbers ?? []).map((item) => ({
+        id: item.id,
+        userId: item.userId,
+        name: item.name,
+        phone: item.phone,
+      })),
+    [props.phoneNumbers],
+  );
   const [phoneNameInput, setPhoneNameInput] = useState("");
   const [phoneValueInput, setPhoneValueInput] = useState("");
   const [phoneValidation, setPhoneValidation] =
@@ -63,18 +72,23 @@ export function useDashboardController() {
       return;
     }
 
-    setPhoneNumbers((prev) => [
-      ...prev,
+    setIsCreatingPhoneNumber(true);
+    router.post(
+      "/phone-numbers",
+      { name, phone },
       {
-        id: createClientId("phone"),
-        userId: USER_ID,
-        name,
-        phone,
+        preserveScroll: true,
+        onSuccess: () => {
+          openAddPhoneDialog(false);
+        },
+        onError: () => {
+          toast.error("Unable to add phone number right now.");
+        },
+        onFinish: () => {
+          setIsCreatingPhoneNumber(false);
+        },
       },
-    ]);
-
-    openAddPhoneDialog(false);
-    toast.success("Phone number added.");
+    );
   }
 
   function logout() {
@@ -87,6 +101,7 @@ export function useDashboardController() {
     totalConversations: seedConversations.length,
     totalMessages,
     phoneNumbers,
+    isCreatingPhoneNumber,
     isAddPhoneDialogOpen,
     openAddPhoneDialog,
     phoneNameInput,

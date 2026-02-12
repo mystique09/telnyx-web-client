@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use actix_session::Session;
-use actix_web::{HttpResponse, Responder, web};
+use actix_web::{HttpRequest, HttpResponse, Responder, http::header::LOCATION, web};
 use domain::{
     models::phone_number::PhoneNumber, repositories::RepositoryError,
     repositories::phone_number_repository::PhoneNumberRepository,
@@ -10,11 +10,13 @@ use time::OffsetDateTime;
 use tracing::error;
 
 use crate::{
-    dto::{CreatePhoneNumberRequest, CreatePhoneNumberResponse},
+    dto::{CreatePhoneNumberRequest, CreatePhoneNumberResponse, FlashProps},
+    flash::set_flash,
     session::get_user_id,
 };
 
 pub async fn handle_create_phone_number(
+    req: HttpRequest,
     create_req: web::Json<CreatePhoneNumberRequest>,
     session: Session,
     phone_number_repository: web::Data<Arc<dyn PhoneNumberRepository>>,
@@ -38,9 +40,18 @@ pub async fn handle_create_phone_number(
         .create_phone_number(&phone_number)
         .await
     {
-        Ok(_) => HttpResponse::Created().json(CreatePhoneNumberResponse {
-            id: phone_number_id,
-        }),
+        Ok(_) => {
+            if req.headers().contains_key("x-inertia") {
+                set_flash(&session, FlashProps::success("Phone number added."));
+                return HttpResponse::Found()
+                    .append_header((LOCATION, "/"))
+                    .finish();
+            }
+
+            HttpResponse::Created().json(CreatePhoneNumberResponse {
+                id: phone_number_id,
+            })
+        }
         Err(err) => {
             error!(
                 "failed to create phone number for user {} and phone {}: {}",
@@ -49,9 +60,31 @@ pub async fn handle_create_phone_number(
 
             match err {
                 RepositoryError::ConstraintViolation(_) | RepositoryError::DatabaseError(_) => {
+                    if req.headers().contains_key("x-inertia") {
+                        set_flash(
+                            &session,
+                            FlashProps::error(
+                                "Unable to add phone number. Check for duplicates and try again.",
+                            ),
+                        );
+                        return HttpResponse::Found()
+                            .append_header((LOCATION, "/"))
+                            .finish();
+                    }
+
                     HttpResponse::BadRequest().finish()
                 }
                 RepositoryError::NotFound | RepositoryError::UnexpectedError(_) => {
+                    if req.headers().contains_key("x-inertia") {
+                        set_flash(
+                            &session,
+                            FlashProps::error("Unable to add phone number right now."),
+                        );
+                        return HttpResponse::Found()
+                            .append_header((LOCATION, "/"))
+                            .finish();
+                    }
+
                     HttpResponse::InternalServerError().finish()
                 }
             }
