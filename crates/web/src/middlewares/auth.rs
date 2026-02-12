@@ -1,4 +1,4 @@
-use crate::session::clear_authenticated;
+use crate::session::{clear_authenticated, get_access_token, is_authenticated};
 use actix_session::SessionExt;
 use actix_web::{
     Responder,
@@ -55,11 +55,7 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let session = req.get_session();
-        let is_auth = session
-            .get::<bool>("authenticated")
-            .ok()
-            .flatten()
-            .unwrap_or(false);
+        let is_auth = is_authenticated(&session);
 
         // Redirect authenticated users to home
         if is_auth {
@@ -121,14 +117,10 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let session = req.get_session();
-        let is_auth = session
-            .get::<bool>("authenticated")
-            .ok()
-            .flatten()
-            .unwrap_or(false);
+        let is_auth = is_authenticated(&session);
 
         if is_auth {
-            let token_opt: Option<String> = session.get("access_token").ok().flatten();
+            let token_opt = get_access_token(&session);
 
             if let Some(token) = token_opt {
                 let token_service_opt: Option<Arc<dyn TokenService>> = req

@@ -7,6 +7,7 @@ use rbatis::{RBatis, async_trait};
 use rbs::value;
 
 use crate::database;
+use crate::database::models::UuidExt;
 use crate::repositories::RbsErrorExt;
 
 #[derive(Debug, bon::Builder)]
@@ -31,9 +32,11 @@ impl PhoneNumberRepository for PhoneNumberRepositoryImpl {
         user_id: &uuid::Uuid,
         id: &uuid::Uuid,
     ) -> Result<PhoneNumber, RepositoryError> {
+        let user_id_db = user_id.into_db();
+        let id_db = id.into_db();
         let phone_number = database::models::phone_number::PhoneNumber::select_by_map(
             self.pool.as_ref(),
-            value! { "id": id, "user_id": user_id },
+            value! { "id": id_db, "user_id": user_id_db },
         )
         .await
         .map_err(|e| e.to_repository_error())?
@@ -48,9 +51,10 @@ impl PhoneNumberRepository for PhoneNumberRepositoryImpl {
         &self,
         user_id: &uuid::Uuid,
     ) -> Result<Vec<PhoneNumber>, RepositoryError> {
+        let user_id_db = user_id.into_db();
         let records = database::models::phone_number::PhoneNumber::select_by_map(
             self.pool.as_ref(),
-            value! { "user_id": user_id },
+            value! { "user_id": user_id_db },
         )
         .await
         .map_err(|e| e.to_repository_error())?;
@@ -66,11 +70,13 @@ impl PhoneNumberRepository for PhoneNumberRepositoryImpl {
         user_id: &uuid::Uuid,
         id: &uuid::Uuid,
     ) -> Result<(), RepositoryError> {
+        let user_id_db = user_id.into_db();
+        let id_db = id.into_db();
         self.find_by_id(user_id, id).await?;
 
         database::models::phone_number::PhoneNumber::delete_by_map(
             self.pool.as_ref(),
-            value! { "id": id, "user_id": user_id },
+            value! { "id": id_db, "user_id": user_id_db },
         )
         .await
         .map_err(|e| e.to_repository_error())?;

@@ -77,26 +77,16 @@ pub async fn handle_login(
                 FlashProps::success("Welcome back! You have successfully logged in."),
             );
 
-            set_authenticated(&session, &result.id.to_string(), &result.access_token);
+            set_authenticated(
+                &session,
+                &result.id.to_string(),
+                &result.email,
+                &result.access_token,
+            );
 
-            let response = HttpResponse::Found()
+            HttpResponse::Found()
                 .append_header((actix_web::http::header::LOCATION, "/"))
-                .append_header((
-                    actix_web::http::header::SET_COOKIE,
-                    format!(
-                        "access_token={}; HttpOnly; Secure; Path=/; SameSite=Lax; Max-Age={}",
-                        result.access_token, 3600
-                    ),
-                ))
-                .append_header((
-                    actix_web::http::header::SET_COOKIE,
-                    format!(
-                        "refresh_token={}; HttpOnly; Secure; Path=/; SameSite=Lax; Max-Age={}",
-                        result.refresh_token, 604800
-                    ),
-                ))
-                .finish();
-            response
+                .finish()
         }
         Err(ref e) => {
             let errors = match e {
