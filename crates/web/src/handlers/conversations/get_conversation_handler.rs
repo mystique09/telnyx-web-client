@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use actix_session::Session;
 use actix_web::{HttpRequest, Responder, web};
-use domain::repositories::RepositoryError;
+use application::usecases::UsecaseError;
+use application::usecases::get_conversation_usecase::GetConversationUsecase;
+use application::usecases::list_conversations_usecase::ListConversationsUsecase;
+use application::usecases::list_phone_numbers_usecase::ListPhoneNumbersUsecase;
 use domain::repositories::conversation_repository::ConversationRepository;
 use domain::repositories::phone_number_repository::PhoneNumberRepository;
 use serde::Serialize;
@@ -34,14 +37,24 @@ pub async fn render_get_conversation(
     let conversation_id = path.into_inner();
     let flash = extract_flash(&session);
 
+    let get_conversation_usecase = GetConversationUsecase::builder()
+        .conversation_repository(conversation_repository.get_ref().clone())
+        .build();
+    let list_conversations_usecase = ListConversationsUsecase::builder()
+        .conversation_repository(conversation_repository.get_ref().clone())
+        .build();
+    let list_phone_numbers_usecase = ListPhoneNumbersUsecase::builder()
+        .phone_number_repository(phone_number_repository.get_ref().clone())
+        .build();
+
     let (conversation, conversations, phone_numbers) = match session_user_id(&session) {
         Some(user_id) => {
-            let conversation = match conversation_repository
-                .find_by_id(&user_id, &conversation_id)
+            let conversation = match get_conversation_usecase
+                .execute(user_id, conversation_id)
                 .await
             {
                 Ok(item) => Some(ConversationProps::from(&item)),
-                Err(RepositoryError::NotFound) => None,
+                Err(UsecaseError::EntityNotFound) => None,
                 Err(err) => {
                     error!(
                         "failed to get conversation {} for user {}: {}",
@@ -51,7 +64,7 @@ pub async fn render_get_conversation(
                 }
             };
 
-            let conversations = match conversation_repository.list_by_user_id(&user_id).await {
+            let conversations = match list_conversations_usecase.execute(user_id).await {
                 Ok(items) => items.iter().map(ConversationProps::from).collect(),
                 Err(err) => {
                     error!("failed to list conversations for user {}: {}", user_id, err);
@@ -59,7 +72,7 @@ pub async fn render_get_conversation(
                 }
             };
 
-            let phone_numbers = match phone_number_repository.list_by_user_id(&user_id).await {
+            let phone_numbers = match list_phone_numbers_usecase.execute(user_id).await {
                 Ok(items) => items.iter().map(PhoneNumberProps::from).collect(),
                 Err(err) => {
                     error!("failed to list phone numbers for user {}: {}", user_id, err);

@@ -1,4 +1,13 @@
+pub mod create_conversation_usecase;
+pub mod create_phone_number_usecase;
 pub mod create_user_usecase;
+pub mod delete_conversation_usecase;
+pub mod delete_phone_number_usecase;
+pub mod get_conversation_usecase;
+pub mod get_dashboard_home_usecase;
+pub mod get_phone_number_usecase;
+pub mod list_conversations_usecase;
+pub mod list_phone_numbers_usecase;
 pub mod login_usecase;
 
 use domain::repositories::RepositoryError;

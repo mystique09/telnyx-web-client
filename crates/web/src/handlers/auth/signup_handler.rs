@@ -11,6 +11,8 @@ use crate::{
     inertia::Page,
 };
 use application::usecases::create_user_usecase::CreateUserUsecase;
+use domain::repositories::user_repository::UserRepository;
+use domain::traits::password_hasher::PasswordHasher;
 
 #[derive(Debug, Serialize)]
 struct SignupPageProps {
@@ -39,10 +41,15 @@ pub async fn render_signup(req: HttpRequest, session: Session) -> impl Responder
 pub async fn handle_signup(
     req: HttpRequest,
     signup_req: web::Json<SignupRequest>,
-    create_user: web::Data<Arc<CreateUserUsecase>>,
+    user_repository: web::Data<Arc<dyn UserRepository>>,
+    password_hasher: web::Data<Arc<dyn PasswordHasher>>,
     session: Session,
 ) -> impl Responder {
     let cmd = signup_req.into_inner().into();
+    let create_user = CreateUserUsecase::builder()
+        .user_repository(user_repository.get_ref().clone())
+        .password_hasher(password_hasher.get_ref().clone())
+        .build();
 
     match create_user.execute(cmd).await {
         Ok(_result) => {

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use domain::repositories::message_repository::MessageRepository;
 use domain::repositories::RepositoryError;
+use domain::repositories::message_repository::MessageRepository;
 
 use rbatis::{RBatis, async_trait};
 use rbs::value;

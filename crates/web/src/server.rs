@@ -27,8 +27,7 @@ use crate::{
     middlewares::auth::ProtectedMiddleware,
     session::get_user_id,
 };
-use application::usecases::create_user_usecase::CreateUserUsecase;
-use application::usecases::login_usecase::LoginUsecase;
+use application::usecases::get_dashboard_home_usecase::GetDashboardHomeUsecase;
 use domain::repositories::conversation_repository::ConversationRepository;
 use domain::repositories::message_repository::MessageRepository;
 use domain::repositories::phone_number_repository::PhoneNumberRepository;
@@ -55,22 +54,6 @@ pub fn create_web_service(
 > {
     let dist = dist_dir();
 
-    // Create use case instances (in production, this would come from DI container)
-    let create_user_usecase = Arc::new(
-        CreateUserUsecase::builder()
-            .user_repository(user_repository.clone())
-            .password_hasher(password_hasher.clone())
-            .build(),
-    );
-
-    let login_usecase = Arc::new(
-        LoginUsecase::builder()
-            .user_repository(user_repository)
-            .password_hasher(password_hasher)
-            .token_service(token_service.clone())
-            .build(),
-    );
-
     let signing_key = Key::from(session_secret.as_bytes());
 
     let mut app = App::new()
@@ -87,8 +70,8 @@ pub fn create_web_service(
         .wrap(Compress::default())
         .wrap(Logger::default())
         .wrap(ErrorHandlers::new().handler(StatusCode::NOT_FOUND, error_404_error_handler))
-        .app_data(web::Data::new(create_user_usecase))
-        .app_data(web::Data::new(login_usecase))
+        .app_data(web::Data::new(user_repository))
+        .app_data(web::Data::new(password_hasher))
         .app_data(web::Data::new(conversation_repository))
         .app_data(web::Data::new(message_repository))
         .app_data(web::Data::new(phone_number_repository))
@@ -133,51 +116,45 @@ async fn index(
         clear_flash(&session);
     }
 
+    let get_dashboard_home_usecase = GetDashboardHomeUsecase::builder()
+        .conversation_repository(conversation_repository.get_ref().clone())
+        .message_repository(message_repository.get_ref().clone())
+        .phone_number_repository(phone_number_repository.get_ref().clone())
+        .build();
+
     let (phone_numbers, analytics) = match session_user_id(&session) {
-        Some(user_id) => {
-            let (conversations_result, total_messages_result, phone_numbers_result) =
-                futures_util::future::join3(
-                    conversation_repository.list_by_user_id(&user_id),
-                    message_repository.count_by_user_id(&user_id),
-                    phone_number_repository.list_by_user_id(&user_id),
-                )
-                .await;
-
-            let conversations = match conversations_result {
-                Ok(items) => items,
-                Err(err) => {
-                    error!("failed to list conversations for user {}: {}", user_id, err);
-                    Vec::new()
-                }
-            };
-
-            let total_messages = match total_messages_result {
-                Ok(total) => total,
-                Err(err) => {
-                    error!("failed to count messages for user {}: {}", user_id, err);
-                    0
-                }
-            };
-
-            let phone_numbers = match phone_numbers_result {
-                Ok(items) => items
+        Some(user_id) => match get_dashboard_home_usecase.execute(user_id).await {
+            Ok(result) => {
+                let phone_numbers = result
+                    .phone_numbers
                     .iter()
                     .map(crate::dto::PhoneNumberProps::from)
-                    .collect::<Vec<_>>(),
-                Err(err) => {
-                    error!("failed to list phone numbers for user {}: {}", user_id, err);
-                    Vec::new()
-                }
-            };
+                    .collect::<Vec<_>>();
 
-            let analytics = DashboardAnalyticsProps::builder()
-                .total_conversations(conversations.len() as u64)
-                .total_messages(total_messages)
-                .total_phone_numbers(phone_numbers.len() as u64)
-                .build();
+                let analytics = DashboardAnalyticsProps::builder()
+                    .total_conversations(result.analytics.total_conversations)
+                    .total_messages(result.analytics.total_messages)
+                    .total_phone_numbers(result.analytics.total_phone_numbers)
+                    .build();
 
-            (phone_numbers, analytics)
-        }
+                (phone_numbers, analytics)
+            }
+            Err(err) => {
+                error!(
+                    "failed to load dashboard home data for user {}: {}",
+                    user_id, err
+                );
+
+                (
+                    Vec::new(),
+                    DashboardAnalyticsProps::builder()
+                        .total_conversations(0)
+                        .total_messages(0)
+                        .total_phone_numbers(0)
+                        .build(),
+                )
+            }
+        },
         None => (
             Vec::new(),
             DashboardAnalyticsProps::builder()

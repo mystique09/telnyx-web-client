@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use actix_session::Session;
 use actix_web::{HttpRequest, HttpResponse, Responder, http::header::LOCATION, web};
-use domain::repositories::RepositoryError;
+use application::usecases::UsecaseError;
+use application::usecases::delete_conversation_usecase::DeleteConversationUsecase;
 use domain::repositories::conversation_repository::ConversationRepository;
 use tracing::error;
 
@@ -22,8 +23,12 @@ pub async fn handle_delete_conversation(
             .finish();
     };
 
-    match conversation_repository
-        .delete_conversation(&user_id, &conversation_id)
+    let delete_conversation_usecase = DeleteConversationUsecase::builder()
+        .conversation_repository(conversation_repository.get_ref().clone())
+        .build();
+
+    match delete_conversation_usecase
+        .execute(user_id, conversation_id)
         .await
     {
         Ok(_) => {
@@ -36,7 +41,7 @@ pub async fn handle_delete_conversation(
 
             HttpResponse::NoContent().finish()
         }
-        Err(RepositoryError::NotFound) => {
+        Err(UsecaseError::EntityNotFound) => {
             if req.headers().contains_key("x-inertia") {
                 set_flash(&session, FlashProps::error("Conversation not found."));
                 return HttpResponse::Found()

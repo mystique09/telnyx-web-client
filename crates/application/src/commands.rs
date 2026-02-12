@@ -1,4 +1,5 @@
 use garde::Validate;
+use uuid::Uuid;
 
 #[derive(Debug, Validate, Clone)]
 pub struct SignupCommand {
@@ -57,4 +58,17 @@ impl ResetPasswordCommand {
             Ok(())
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateConversationCommand {
+    pub user_id: Uuid,
+    pub phone_number_id: Uuid,
+}
+
+#[derive(Debug, Clone)]
+pub struct CreatePhoneNumberCommand {
+    pub user_id: Uuid,
+    pub name: String,
+    pub phone: String,
 }

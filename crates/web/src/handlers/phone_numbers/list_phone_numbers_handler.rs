@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use actix_session::Session;
 use actix_web::{HttpResponse, Responder, web};
+use application::usecases::list_phone_numbers_usecase::ListPhoneNumbersUsecase;
 use domain::repositories::phone_number_repository::PhoneNumberRepository;
 use tracing::error;
 
@@ -15,7 +16,11 @@ pub async fn handle_list_phone_numbers(
         return HttpResponse::Unauthorized().finish();
     };
 
-    match phone_number_repository.list_by_user_id(&user_id).await {
+    let list_phone_numbers_usecase = ListPhoneNumbersUsecase::builder()
+        .phone_number_repository(phone_number_repository.get_ref().clone())
+        .build();
+
+    match list_phone_numbers_usecase.execute(user_id).await {
         Ok(phone_numbers) => HttpResponse::Ok().json(
             phone_numbers
                 .iter()

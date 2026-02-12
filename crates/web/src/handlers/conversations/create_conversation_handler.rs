@@ -2,11 +2,10 @@ use std::sync::Arc;
 
 use actix_session::Session;
 use actix_web::{HttpRequest, HttpResponse, Responder, http::header::LOCATION, web};
-use domain::{
-    models::conversation::Conversation, repositories::RepositoryError,
-    repositories::conversation_repository::ConversationRepository,
-};
-use time::OffsetDateTime;
+use application::commands::CreateConversationCommand;
+use application::usecases::UsecaseError;
+use application::usecases::create_conversation_usecase::CreateConversationUsecase;
+use domain::repositories::conversation_repository::ConversationRepository;
 use tracing::error;
 
 use crate::{
@@ -27,32 +26,25 @@ pub async fn handle_create_conversation(
             .finish();
     };
 
-    let now = OffsetDateTime::now_utc();
-    let conversation_id = uuid::Uuid::now_v7();
-    let conversation = Conversation::builder()
-        .id(conversation_id)
-        .phone_number_id(create_req.phone_number_id)
-        .user_id(user_id)
-        .last_message_at(now)
-        .created_at(now)
-        .updated_at(now)
+    let cmd = CreateConversationCommand {
+        user_id,
+        phone_number_id: create_req.phone_number_id,
+    };
+
+    let create_conversation_usecase = CreateConversationUsecase::builder()
+        .conversation_repository(conversation_repository.get_ref().clone())
         .build();
 
-    match conversation_repository
-        .create_conversation(&conversation)
-        .await
-    {
-        Ok(_) => {
+    match create_conversation_usecase.execute(cmd).await {
+        Ok(result) => {
             if req.headers().contains_key("x-inertia") {
                 set_flash(&session, FlashProps::success("Conversation created."));
                 return HttpResponse::Found()
-                    .append_header((LOCATION, format!("/conversations/{}", conversation_id)))
+                    .append_header((LOCATION, format!("/conversations/{}", result.id)))
                     .finish();
             }
 
-            HttpResponse::Created().json(CreateConversationResponse {
-                id: conversation_id,
-            })
+            HttpResponse::Created().json(CreateConversationResponse { id: result.id })
         }
         Err(err) => {
             error!(
@@ -61,12 +53,8 @@ pub async fn handle_create_conversation(
             );
 
             match err {
-                RepositoryError::ConstraintViolation(_) | RepositoryError::DatabaseError(_) => {
-                    HttpResponse::BadRequest().finish()
-                }
-                RepositoryError::NotFound | RepositoryError::UnexpectedError(_) => {
-                    HttpResponse::InternalServerError().finish()
-                }
+                UsecaseError::Database(_) => HttpResponse::BadRequest().finish(),
+                _ => HttpResponse::InternalServerError().finish(),
             }
         }
     }

@@ -14,6 +14,9 @@ use crate::{
     inertia::Page,
 };
 use application::usecases::login_usecase::LoginUsecase;
+use domain::repositories::user_repository::UserRepository;
+use domain::traits::password_hasher::PasswordHasher;
+use domain::traits::token_service::TokenService;
 
 #[derive(Debug, Serialize)]
 struct LoginPageProps {
@@ -65,10 +68,17 @@ pub async fn render_login(req: HttpRequest, session: Session) -> impl Responder 
 pub async fn handle_login(
     req: HttpRequest,
     login_req: web::Json<LoginRequest>,
-    login_usecase: web::Data<Arc<LoginUsecase>>,
+    user_repository: web::Data<Arc<dyn UserRepository>>,
+    password_hasher: web::Data<Arc<dyn PasswordHasher>>,
+    token_service: web::Data<Arc<dyn TokenService>>,
     session: Session,
 ) -> impl Responder {
     let cmd = login_req.into_inner().into();
+    let login_usecase = LoginUsecase::builder()
+        .user_repository(user_repository.get_ref().clone())
+        .password_hasher(password_hasher.get_ref().clone())
+        .token_service(token_service.get_ref().clone())
+        .build();
 
     match login_usecase.execute(cmd).await {
         Ok(result) => {

@@ -2,11 +2,10 @@ use std::sync::Arc;
 
 use actix_session::Session;
 use actix_web::{HttpRequest, HttpResponse, Responder, http::header::LOCATION, web};
-use domain::{
-    models::phone_number::PhoneNumber, repositories::RepositoryError,
-    repositories::phone_number_repository::PhoneNumberRepository,
-};
-use time::OffsetDateTime;
+use application::commands::CreatePhoneNumberCommand;
+use application::usecases::UsecaseError;
+use application::usecases::create_phone_number_usecase::CreatePhoneNumberUsecase;
+use domain::repositories::phone_number_repository::PhoneNumberRepository;
 use tracing::error;
 
 use crate::{
@@ -25,22 +24,17 @@ pub async fn handle_create_phone_number(
         return HttpResponse::Unauthorized().finish();
     };
 
-    let now = OffsetDateTime::now_utc();
-    let phone_number_id = uuid::Uuid::now_v7();
-    let phone_number = PhoneNumber::builder()
-        .id(phone_number_id)
-        .user_id(user_id)
-        .name(create_req.name.clone())
-        .phone(create_req.phone.clone())
-        .created_at(now)
-        .updated_at(now)
+    let create_phone_number_usecase = CreatePhoneNumberUsecase::builder()
+        .phone_number_repository(phone_number_repository.get_ref().clone())
         .build();
+    let cmd = CreatePhoneNumberCommand {
+        user_id,
+        name: create_req.name.clone(),
+        phone: create_req.phone.clone(),
+    };
 
-    match phone_number_repository
-        .create_phone_number(&phone_number)
-        .await
-    {
-        Ok(_) => {
+    match create_phone_number_usecase.execute(cmd).await {
+        Ok(result) => {
             if req.headers().contains_key("x-inertia") {
                 set_flash(&session, FlashProps::success("Phone number added."));
                 return HttpResponse::Found()
@@ -48,9 +42,7 @@ pub async fn handle_create_phone_number(
                     .finish();
             }
 
-            HttpResponse::Created().json(CreatePhoneNumberResponse {
-                id: phone_number_id,
-            })
+            HttpResponse::Created().json(CreatePhoneNumberResponse { id: result.id })
         }
         Err(err) => {
             error!(
@@ -59,7 +51,7 @@ pub async fn handle_create_phone_number(
             );
 
             match err {
-                RepositoryError::ConstraintViolation(_) | RepositoryError::DatabaseError(_) => {
+                UsecaseError::Database(_) => {
                     if req.headers().contains_key("x-inertia") {
                         set_flash(
                             &session,
@@ -74,7 +66,7 @@ pub async fn handle_create_phone_number(
 
                     HttpResponse::BadRequest().finish()
                 }
-                RepositoryError::NotFound | RepositoryError::UnexpectedError(_) => {
+                _ => {
                     if req.headers().contains_key("x-inertia") {
                         set_flash(
                             &session,
