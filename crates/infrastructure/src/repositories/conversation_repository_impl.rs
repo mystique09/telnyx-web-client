@@ -7,6 +7,7 @@ use rbatis::{RBatis, async_trait};
 use rbs::value;
 
 use crate::database;
+use crate::database::models::UuidExt;
 use crate::repositories::RbsErrorExt;
 
 #[derive(Debug, bon::Builder)]
@@ -37,9 +38,11 @@ impl ConversationRepository for ConversationRepositoryImpl {
         user_id: &uuid::Uuid,
         id: &uuid::Uuid,
     ) -> Result<Conversation, RepositoryError> {
+        let user_id_db = user_id.into_db();
+        let id_db = id.into_db();
         let conversation = database::models::conversation::Conversation::select_by_map(
             self.pool.as_ref(),
-            value! { "id": id, "user_id": user_id },
+            value! { "id": id_db, "user_id": user_id_db },
         )
         .await
         .map_err(|e| e.to_repository_error())?
@@ -54,9 +57,10 @@ impl ConversationRepository for ConversationRepositoryImpl {
         &self,
         user_id: &uuid::Uuid,
     ) -> Result<Vec<Conversation>, RepositoryError> {
+        let user_id_db = user_id.into_db();
         let records = database::models::conversation::Conversation::select_by_map(
             self.pool.as_ref(),
-            value! { "user_id": user_id },
+            value! { "user_id": user_id_db },
         )
         .await
         .map_err(|e| e.to_repository_error())?;
@@ -76,11 +80,13 @@ impl ConversationRepository for ConversationRepositoryImpl {
         user_id: &uuid::Uuid,
         id: &uuid::Uuid,
     ) -> Result<(), RepositoryError> {
+        let user_id_db = user_id.into_db();
+        let id_db = id.into_db();
         self.find_by_id(user_id, id).await?;
 
         database::models::conversation::Conversation::delete_by_map(
             self.pool.as_ref(),
-            value! { "id": id, "user_id": user_id },
+            value! { "id": id_db, "user_id": user_id_db },
         )
         .await
         .map_err(|e| e.to_repository_error())?;
