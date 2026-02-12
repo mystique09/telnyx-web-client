@@ -3,6 +3,7 @@ use std::str::FromStr;
 use rbatis::rbdc::{DateTime, Uuid};
 use time::OffsetDateTime;
 
+pub mod conversation;
 pub mod message;
 pub mod phone_number;
 pub mod reset_password;

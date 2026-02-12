@@ -18,7 +18,9 @@ use crate::{
     Empty,
     dto::FlashProps,
     flash::{clear_flash, extract_flash},
-    handlers::{auth::build_auth_service, inertia::version},
+    handlers::{
+        auth::build_auth_service, conversations::build_conversations_service, inertia::version,
+    },
     inertia::{dist_dir, is_dev, response_with_html},
     middlewares::auth::ProtectedMiddleware,
 };
@@ -80,6 +82,7 @@ pub fn create_web_service(
         .app_data(web::Data::new(login_usecase))
         .app_data(web::Data::new(token_service.clone()))
         .route("/", web::get().to(index).wrap(ProtectedMiddleware::new()))
+        .service(build_conversations_service())
         .service(build_auth_service())
         .service(
             web::scope("/version")
