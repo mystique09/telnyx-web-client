@@ -20,6 +20,7 @@ use crate::{
     flash::{clear_flash, extract_flash},
     handlers::{
         auth::build_auth_service, conversations::build_conversations_service, inertia::version,
+        phone_numbers::build_phone_numbers_service,
     },
     inertia::{Page, dist_dir, is_dev, response_with_html},
     middlewares::auth::ProtectedMiddleware,
@@ -27,6 +28,7 @@ use crate::{
 use application::usecases::create_user_usecase::CreateUserUsecase;
 use application::usecases::login_usecase::LoginUsecase;
 use domain::repositories::conversation_repository::ConversationRepository;
+use domain::repositories::phone_number_repository::PhoneNumberRepository;
 use domain::repositories::user_repository::UserRepository;
 use domain::traits::password_hasher::PasswordHasher;
 use domain::traits::token_service::TokenService;
@@ -35,6 +37,7 @@ pub fn create_web_service(
     session_secret: String,
     user_repository: Arc<dyn UserRepository>,
     conversation_repository: Arc<dyn ConversationRepository>,
+    phone_number_repository: Arc<dyn PhoneNumberRepository>,
     password_hasher: Arc<dyn PasswordHasher>,
     token_service: Arc<dyn TokenService>,
 ) -> App<
@@ -83,9 +86,11 @@ pub fn create_web_service(
         .app_data(web::Data::new(create_user_usecase))
         .app_data(web::Data::new(login_usecase))
         .app_data(web::Data::new(conversation_repository))
+        .app_data(web::Data::new(phone_number_repository))
         .app_data(web::Data::new(token_service.clone()))
         .route("/", web::get().to(index).wrap(ProtectedMiddleware::new()))
         .service(build_conversations_service())
+        .service(build_phone_numbers_service())
         .service(build_auth_service())
         .service(
             web::scope("/version")

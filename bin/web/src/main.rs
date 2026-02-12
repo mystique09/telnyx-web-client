@@ -6,6 +6,7 @@ use infrastructure::{
     database::{migrator::migrator, pool::create_db_pool},
     repositories::{
         conversation_repository_impl::ConversationRepositoryImpl,
+        phone_number_repository_impl::PhoneNumberRepositoryImpl,
         user_repository_impl::UserRepositoryImpl,
     },
     security::argon2_hasher::Argon2Hasher,
@@ -29,8 +30,12 @@ async fn main() -> eyre::Result<()> {
     let _ = migrator(&db_config.url).await;
 
     let user_repository = Arc::new(UserRepositoryImpl::builder().pool(pool.clone()).build());
-    let conversation_repository =
-        Arc::new(ConversationRepositoryImpl::builder().pool(pool).build());
+    let conversation_repository = Arc::new(
+        ConversationRepositoryImpl::builder()
+            .pool(pool.clone())
+            .build(),
+    );
+    let phone_number_repository = Arc::new(PhoneNumberRepositoryImpl::builder().pool(pool).build());
     let password_hasher = Arc::new(Argon2Hasher::new());
     let token_service = Arc::new(PasetoAuthenticationTokenService::new(
         &config.paseto_symmetric_key,
@@ -43,6 +48,7 @@ async fn main() -> eyre::Result<()> {
             session_secret,
             user_repository.clone(),
             conversation_repository.clone(),
+            phone_number_repository.clone(),
             password_hasher.clone(),
             token_service.clone(),
         )

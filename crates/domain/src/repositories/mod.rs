@@ -1,4 +1,5 @@
 pub mod conversation_repository;
+pub mod phone_number_repository;
 pub mod user_repository;
 
 #[derive(Debug, thiserror::Error)]
