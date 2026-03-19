@@ -10,12 +10,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import type {
-  Conversation,
-  Message,
-  PhoneNumber,
-  SentMediaItem,
-} from "@/lib/mock-messaging";
+import type { Conversation, Message, PhoneNumber, SentMediaItem } from "../types";
 import { MessageComposer } from "./MessageComposer";
 import { MessageList } from "./MessageList";
 import { SentMediaPanel } from "./SentMediaPanel";
@@ -31,6 +26,7 @@ type ConversationMainPanelProps = {
   onMessageDraftChange: (draft: string) => void;
   onSendMessage: (event: FormEvent<HTMLFormElement>) => void;
   onComposerKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
+  isSendingMessage: boolean;
   sentMedia: SentMediaItem[];
 };
 
@@ -67,6 +63,7 @@ export function ConversationMainPanel({
   onMessageDraftChange,
   onSendMessage,
   onComposerKeyDown,
+  isSendingMessage,
   sentMedia,
 }: ConversationMainPanelProps) {
   if (!hasConversations) {
@@ -92,8 +89,10 @@ export function ConversationMainPanel({
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="border-b px-4 py-4 md:px-6">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-lg font-semibold">{selectedConversation.title}</h2>
-            <Badge variant="secondary">{selectedConversation.counterpartyNumber}</Badge>
+            <h2 className="text-lg font-semibold">
+              {selectedConversation.recipientPhoneNumber ??
+                `Conversation ${selectedConversation.id.slice(0, 8)}`}
+            </h2>
             {selectedPhoneNumber ? (
               <Badge variant="outline">via {selectedPhoneNumber.phone}</Badge>
             ) : null}
@@ -123,6 +122,7 @@ export function ConversationMainPanel({
             onMessageDraftChange={onMessageDraftChange}
             onSendMessage={onSendMessage}
             onComposerKeyDown={onComposerKeyDown}
+            isSendingMessage={isSendingMessage}
           />
         </div>
       </div>

@@ -2,8 +2,8 @@ import {
   formatMessageStatus,
   formatMessageTime,
   messageStatusClassName,
-  type Message,
-} from "@/lib/mock-messaging";
+} from "../utils/message-utils";
+import type { Message } from "../types";
 import { cn } from "@/lib/utils";
 
 type MessageListProps = {

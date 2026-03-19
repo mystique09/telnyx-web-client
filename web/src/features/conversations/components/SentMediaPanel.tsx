@@ -4,8 +4,8 @@ import {
   formatMessageStatus,
   mediaKindToneClassName,
   messageStatusClassName,
-  type SentMediaItem,
-} from "@/lib/mock-messaging";
+} from "../utils/message-utils";
+import type { SentMediaItem } from "../types";
 import { cn } from "@/lib/utils";
 
 type SentMediaPanelProps = {

@@ -4,12 +4,8 @@ import { BarChart3, LogOut, MessageSquare } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import {
-  formatConversationTime,
-  getLatestMessage,
-  type Conversation,
-  type PhoneNumber,
-} from "@/lib/mock-messaging";
+import { formatConversationTime, getLatestMessage } from "../utils/message-utils";
+import type { Conversation, PhoneNumber } from "../types";
 import { cn } from "@/lib/utils";
 import { CreateConversationDialog } from "./CreateConversationDialog";
 
@@ -24,8 +20,6 @@ type ConversationsSidebarProps = {
   onOpenCreateConversationDialog: (open: boolean) => void;
   fromPhoneNumberId: string;
   onFromPhoneNumberIdChange: (phoneNumberId: string) => void;
-  conversationNameInput: string;
-  onConversationNameInputChange: (name: string) => void;
   recipientPhoneInput: string;
   onRecipientPhoneInputChange: (recipient: string) => void;
   onCreateConversation: (event: FormEvent<HTMLFormElement>) => void;
@@ -43,8 +37,6 @@ export function ConversationsSidebar({
   onOpenCreateConversationDialog,
   fromPhoneNumberId,
   onFromPhoneNumberIdChange,
-  conversationNameInput,
-  onConversationNameInputChange,
   recipientPhoneInput,
   onRecipientPhoneInputChange,
   onCreateConversation,
@@ -95,8 +87,6 @@ export function ConversationsSidebar({
             phoneNumbers={phoneNumbers}
             fromPhoneNumberId={fromPhoneNumberId}
             onFromPhoneNumberIdChange={onFromPhoneNumberIdChange}
-            conversationNameInput={conversationNameInput}
-            onConversationNameInputChange={onConversationNameInputChange}
             recipientPhoneInput={recipientPhoneInput}
             onRecipientPhoneInputChange={onRecipientPhoneInputChange}
             onCreateConversation={onCreateConversation}
@@ -126,15 +116,17 @@ export function ConversationsSidebar({
                 )}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <p className="truncate text-sm font-medium">{conversation.title}</p>
-                  {latest ? (
+                  <p className="truncate text-sm font-medium">
+                    {conversation.recipientPhoneNumber ?? `Conversation ${conversation.id.slice(0, 8)}`}
+                  </p>
+                  {conversation.lastMessageAt ? (
                     <span className="shrink-0 text-xs text-muted-foreground">
-                      {formatConversationTime(latest.createdAt)}
+                      {formatConversationTime(latest?.createdAt ?? conversation.lastMessageAt)}
                     </span>
                   ) : null}
                 </div>
                 <p className="mt-1 truncate text-xs text-muted-foreground">
-                  {latest?.content ?? "No messages yet"}
+                  {latest?.content ?? conversation.recipientPhoneNumber ?? "No messages yet"}
                 </p>
               </button>
             );

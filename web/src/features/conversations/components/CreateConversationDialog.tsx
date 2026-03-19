@@ -11,8 +11,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { PhoneNumber } from "@/lib/mock-messaging";
+import type { PhoneNumber } from "../types";
 
 type CreateConversationDialogProps = {
   open: boolean;
@@ -29,8 +29,6 @@ type CreateConversationDialogProps = {
   phoneNumbers: PhoneNumber[];
   fromPhoneNumberId: string;
   onFromPhoneNumberIdChange: (phoneNumberId: string) => void;
-  conversationNameInput: string;
-  onConversationNameInputChange: (name: string) => void;
   recipientPhoneInput: string;
   onRecipientPhoneInputChange: (recipient: string) => void;
   onCreateConversation: (event: FormEvent<HTMLFormElement>) => void;
@@ -43,8 +41,6 @@ export function CreateConversationDialog({
   phoneNumbers,
   fromPhoneNumberId,
   onFromPhoneNumberIdChange,
-  conversationNameInput,
-  onConversationNameInputChange,
   recipientPhoneInput,
   onRecipientPhoneInputChange,
   onCreateConversation,
@@ -68,7 +64,7 @@ export function CreateConversationDialog({
         <DialogHeader>
           <DialogTitle>New Conversation</DialogTitle>
           <DialogDescription>
-            Add a name, pick a sending number, then enter recipient phone number.
+            Pick a sending number, then enter the recipient phone number.
           </DialogDescription>
         </DialogHeader>
 
@@ -77,18 +73,6 @@ export function CreateConversationDialog({
           onSubmit={onCreateConversation}
           className="space-y-4"
         >
-          <div className="space-y-2">
-            <Label htmlFor="conversation-name">Conversation Name</Label>
-            <Input
-              id="conversation-name"
-              placeholder="Acme Logistics"
-              value={conversationNameInput}
-              onChange={(event) =>
-                onConversationNameInputChange(event.target.value)
-              }
-            />
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="from-number">From Phone Number</Label>
             <Select

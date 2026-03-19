@@ -1,6 +1,8 @@
 import { router, useForm, usePage } from "@inertiajs/react";
 import {
+  startTransition,
   useEffect,
+  useEffectEvent,
   useMemo,
   useState,
   type FormEvent,
@@ -10,56 +12,91 @@ import { toast } from "sonner";
 
 import {
   compareMessagesAsc,
-  createClientId,
-  getLatestMessage,
   paginateMessages,
-  type Conversation,
-  type Message,
-  type MessageWindow,
-  type PhoneNumber,
-  type SentMediaItem,
-  USER_ID,
-} from "@/lib/mock-messaging";
-import type { ConversationsPageProps } from "../types";
-import {
-  conversationIdFromPath,
-  replaceConversationPath,
-} from "../utils/conversation-route";
+} from "../utils/message-utils";
+import type {
+  Conversation,
+  ConversationsPageProps,
+  Message,
+  MessageRecord,
+  MessageWindow,
+  PhoneNumber,
+  RealtimeMessageEvent,
+  RealtimeMessageEventType,
+  SentMediaItem,
+} from "../types";
+import { conversationIdFromPath } from "../utils/conversation-route";
 
 const E164_PHONE_PATTERN = /^\+?[1-9]\d{6,14}$/;
+type ConversationRecordFromProps = NonNullable<
+  ConversationsPageProps["conversations"]
+>[number];
+
+function mapMessageRecord(record: MessageRecord): Message {
+  return {
+    ...record,
+    mediaFiles: [],
+  };
+}
+
+function mapConversationRecord(
+  record: ConversationRecordFromProps,
+  messages: Message[] = [],
+): Conversation {
+  return {
+    id: record.id,
+    phoneNumberId: record.phoneNumberId,
+    userId: record.userId,
+    recipientPhoneNumber: record.recipientPhoneNumber ?? null,
+    lastMessageAt: record.lastMessageAt,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    messages,
+  };
+}
+
+function sameMessage(a: Message, b: Message): boolean {
+  return (
+    a.id === b.id ||
+    (!!a.providerMessageId &&
+      !!b.providerMessageId &&
+      a.providerMessageId === b.providerMessageId)
+  );
+}
+
+function upsertMessages(messages: Message[], incomingMessage: Message): Message[] {
+  const hasExisting = messages.some((message) => sameMessage(message, incomingMessage));
+  const nextMessages = hasExisting
+    ? messages.map((message) => (sameMessage(message, incomingMessage) ? incomingMessage : message))
+    : [...messages, incomingMessage];
+
+  return [...nextMessages].sort(compareMessagesAsc);
+}
 
 export function useConversationsController() {
   const { post: postLogout, processing: isLoggingOut } = useForm({});
   const { props, url } = usePage<ConversationsPageProps>();
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   const phoneNumbers = useMemo<PhoneNumber[]>(
-    () =>
-      (props.phoneNumbers ?? []).map((item) => ({
-        id: item.id,
-        userId: item.userId,
-        name: item.name,
-        phone: item.phone,
-      })),
+    () => (props.phoneNumbers ?? []).map((item) => ({ ...item })),
     [props.phoneNumbers],
   );
 
+  const selectedConversationMessages = useMemo(
+    () => (props.messages ?? []).map(mapMessageRecord),
+    [props.messages],
+  );
+
   const conversationsFromProps = useMemo<Conversation[]>(() => {
-    const phoneById = new Map(phoneNumbers.map((item) => [item.id, item]));
-
-    return (props.conversations ?? []).map((item) => {
-      const phoneNumber = phoneById.get(item.phoneNumberId);
-
-      return {
-        id: item.id,
-        phoneNumberId: item.phoneNumberId,
-        userId: item.userId,
-        title: phoneNumber?.name ?? `Conversation ${item.id.slice(0, 8)}`,
-        counterpartyNumber: phoneNumber?.phone ?? "Unknown",
-        messages: [],
-      };
-    });
-  }, [phoneNumbers, props.conversations]);
+    return (props.conversations ?? []).map((item) => ({
+      ...mapConversationRecord(
+        item,
+        item.id === props.conversation?.id ? selectedConversationMessages : [],
+      ),
+    }));
+  }, [props.conversation?.id, props.conversations, selectedConversationMessages]);
 
   const [conversations, setConversations] =
     useState<Conversation[]>(conversationsFromProps);
@@ -72,7 +109,6 @@ export function useConversationsController() {
   const [fromPhoneNumberId, setFromPhoneNumberId] = useState<string>(
     phoneNumbers[0]?.id ?? "",
   );
-  const [conversationNameInput, setConversationNameInput] = useState("");
   const [recipientPhoneInput, setRecipientPhoneInput] = useState("");
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | null
@@ -80,6 +116,7 @@ export function useConversationsController() {
 
   useEffect(() => {
     setConversations(conversationsFromProps);
+    setMessageWindows({});
   }, [conversationsFromProps]);
 
   useEffect(() => {
@@ -92,38 +129,90 @@ export function useConversationsController() {
     setSelectedConversationId(conversationIdFromPath(url));
   }, [url]);
 
-  const sortedConversations = useMemo(() => {
-    return [...conversations].sort((a, b) => {
-      const latestA = getLatestMessage(a);
-      const latestB = getLatestMessage(b);
+  const applyRealtimeEvent = useEffectEvent(
+    (_eventType: RealtimeMessageEventType, payload: RealtimeMessageEvent) => {
+      const incomingMessage = mapMessageRecord(payload.message);
 
-      if (!latestA && !latestB) {
-        return 0;
-      }
+      startTransition(() => {
+        setConversations((prev) => {
+          let foundConversation = false;
+          const nextConversations = prev.map((conversation) => {
+            if (conversation.id !== payload.conversation.id) {
+              return conversation;
+            }
 
-      if (!latestA) {
-        return 1;
-      }
+            foundConversation = true;
+            return {
+              ...conversation,
+              ...mapConversationRecord(payload.conversation),
+              messages: upsertMessages(conversation.messages, incomingMessage),
+            };
+          });
 
-      if (!latestB) {
-        return -1;
-      }
+          if (foundConversation) {
+            return nextConversations;
+          }
 
-      return (
-        new Date(latestB.createdAt).getTime() -
-        new Date(latestA.createdAt).getTime()
-      );
-    });
-  }, [conversations]);
+          return [
+            mapConversationRecord(payload.conversation, [incomingMessage]),
+            ...prev,
+          ];
+        });
+
+        setMessageWindows((prev) => {
+          const currentWindow = prev[payload.conversation.id];
+          if (!currentWindow) {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            [payload.conversation.id]: {
+              ...currentWindow,
+              messages: upsertMessages(currentWindow.messages, incomingMessage),
+            },
+          };
+        });
+      });
+    },
+  );
 
   useEffect(() => {
-    const handlePopState = () => {
-      setSelectedConversationId(conversationIdFromPath(window.location.pathname));
+    const eventSource = new EventSource("/events/messages");
+    const registerHandler = (eventType: RealtimeMessageEventType) => {
+      const handler = (event: Event) => {
+        if (!(event instanceof MessageEvent)) {
+          return;
+        }
+
+        try {
+          const payload = JSON.parse(event.data) as RealtimeMessageEvent;
+          applyRealtimeEvent(eventType, payload);
+        } catch {
+          // Ignore malformed realtime payloads and keep the stream alive.
+        }
+      };
+
+      eventSource.addEventListener(eventType, handler);
+      return handler;
     };
 
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
+    const createdHandler = registerHandler("message.created");
+    const updatedHandler = registerHandler("message.updated");
+
+    return () => {
+      eventSource.removeEventListener("message.created", createdHandler);
+      eventSource.removeEventListener("message.updated", updatedHandler);
+      eventSource.close();
+    };
   }, []);
+
+  const sortedConversations = useMemo(() => {
+    return [...conversations].sort(
+      (a, b) =>
+        new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime(),
+    );
+  }, [conversations]);
 
   const selectedConversation = useMemo(() => {
     if (!selectedConversationId) {
@@ -217,8 +306,8 @@ export function useConversationsController() {
     });
   }
 
-  function submitMessage() {
-    if (!selectedConversationId) {
+  async function submitMessage() {
+    if (!selectedConversationId || isSendingMessage) {
       return;
     }
 
@@ -234,67 +323,95 @@ export function useConversationsController() {
       return;
     }
 
-    const outboundNumber =
-      phoneNumbers.find((item) => item.id === activeConversation.phoneNumberId)?.phone ??
-      "unknown";
+    setIsSendingMessage(true);
 
-    const newMessage: Message = {
-      id: createClientId("msg"),
-      conversationId: selectedConversationId,
-      userId: USER_ID,
-      messageType: "OUTBOUND",
-      status: "pending",
-      fromNumber: outboundNumber,
-      content,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const response = await fetch(
+        `/conversations/${encodeURIComponent(selectedConversationId)}/messages`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          credentials: "same-origin",
+          body: JSON.stringify({ content }),
+        },
+      );
 
-    setConversations((prev) =>
-      prev.map((conversation) => {
-        if (conversation.id !== selectedConversationId) {
-          return conversation;
+      if (!response.ok) {
+        let errorMessage = "Unable to send message right now.";
+        try {
+          const payload = (await response.json()) as { error?: string };
+          if (payload.error) {
+            errorMessage = payload.error;
+          }
+        } catch {
+          // Keep the fallback error message when the response body is not JSON.
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const payload = (await response.json()) as { message: MessageRecord };
+      const newMessage = mapMessageRecord(payload.message);
+
+      setConversations((prev) =>
+        prev.map((conversation) => {
+          if (conversation.id !== selectedConversationId) {
+            return conversation;
+          }
+
+          return {
+            ...conversation,
+            lastMessageAt: newMessage.createdAt,
+            updatedAt: newMessage.updatedAt,
+            messages: upsertMessages(conversation.messages, newMessage),
+          };
+        }),
+      );
+
+      setMessageWindows((prev) => {
+        const currentWindow = prev[selectedConversationId] ?? fallbackMessageWindow;
+        if (!currentWindow) {
+          return prev;
         }
 
         return {
-          ...conversation,
-          messages: [...conversation.messages, newMessage],
+          ...prev,
+          [selectedConversationId]: {
+            ...currentWindow,
+            messages: upsertMessages(currentWindow.messages, newMessage),
+          },
         };
-      }),
-    );
+      });
 
-    setMessageWindows((prev) => {
-      const currentWindow = prev[selectedConversationId] ?? fallbackMessageWindow;
-      if (!currentWindow) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        [selectedConversationId]: {
-          ...currentWindow,
-          messages: [...currentWindow.messages, newMessage].sort(compareMessagesAsc),
-        },
-      };
-    });
-
-    setMessageDraft("");
+      setMessageDraft("");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Unable to send message right now.",
+      );
+    } finally {
+      setIsSendingMessage(false);
+    }
   }
 
   function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    submitMessage();
+    void submitMessage();
   }
 
   function composerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && event.ctrlKey) {
       event.preventDefault();
-      submitMessage();
+      void submitMessage();
     }
   }
 
   function selectConversation(conversationId: string) {
-    setSelectedConversationId(conversationId);
-    replaceConversationPath(conversationId);
+    router.get(`/conversations/${encodeURIComponent(conversationId)}`, {}, {
+      preserveScroll: true,
+    });
   }
 
   function openCreateConversationDialog(open: boolean) {
@@ -302,7 +419,6 @@ export function useConversationsController() {
 
     if (!open) {
       setFromPhoneNumberId(phoneNumbers[0]?.id ?? "");
-      setConversationNameInput("");
       setRecipientPhoneInput("");
     }
   }
@@ -328,6 +444,7 @@ export function useConversationsController() {
       "/conversations",
       {
         phoneNumberId: selectedPhone.id,
+        recipientPhoneNumber: recipient,
       },
       {
         preserveScroll: true,
@@ -359,8 +476,6 @@ export function useConversationsController() {
     openCreateConversationDialog,
     fromPhoneNumberId,
     setFromPhoneNumberId,
-    conversationNameInput,
-    setConversationNameInput,
     recipientPhoneInput,
     setRecipientPhoneInput,
     createConversation,
@@ -373,6 +488,7 @@ export function useConversationsController() {
     loadOlderMessages,
     messageDraft,
     setMessageDraft,
+    isSendingMessage,
     sendMessage,
     composerKeyDown,
     sentMedia,

@@ -9,6 +9,7 @@ type MessageComposerProps = {
   onMessageDraftChange: (draft: string) => void;
   onSendMessage: (event: FormEvent<HTMLFormElement>) => void;
   onComposerKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
+  isSendingMessage: boolean;
 };
 
 export function MessageComposer({
@@ -16,6 +17,7 @@ export function MessageComposer({
   onMessageDraftChange,
   onSendMessage,
   onComposerKeyDown,
+  isSendingMessage,
 }: MessageComposerProps) {
   return (
     <form onSubmit={onSendMessage} className="border-t p-4 md:p-6">
@@ -26,12 +28,13 @@ export function MessageComposer({
           onKeyDown={onComposerKeyDown}
           placeholder="Type a message..."
           className="min-h-20"
+          disabled={isSendingMessage}
         />
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground">Tip: Ctrl+Enter sends message</p>
-          <Button type="submit" className="gap-2">
+          <Button type="submit" className="gap-2" disabled={isSendingMessage}>
             <SendHorizontal className="size-4" />
-            Send
+            {isSendingMessage ? "Sending..." : "Send"}
           </Button>
         </div>
       </div>

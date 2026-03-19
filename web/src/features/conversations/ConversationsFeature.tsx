@@ -19,8 +19,6 @@ function ConversationsFeature() {
           onOpenCreateConversationDialog={controller.openCreateConversationDialog}
           fromPhoneNumberId={controller.fromPhoneNumberId}
           onFromPhoneNumberIdChange={controller.setFromPhoneNumberId}
-          conversationNameInput={controller.conversationNameInput}
-          onConversationNameInputChange={controller.setConversationNameInput}
           recipientPhoneInput={controller.recipientPhoneInput}
           onRecipientPhoneInputChange={controller.setRecipientPhoneInput}
           onCreateConversation={controller.createConversation}
@@ -39,6 +37,7 @@ function ConversationsFeature() {
             onMessageDraftChange={controller.setMessageDraft}
             onSendMessage={controller.sendMessage}
             onComposerKeyDown={controller.composerKeyDown}
+            isSendingMessage={controller.isSendingMessage}
             sentMedia={controller.sentMedia}
           />
         </main>
