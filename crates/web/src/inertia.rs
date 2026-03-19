@@ -54,18 +54,19 @@ where
     let data_page = DataPage::new(component, props, req.uri().to_string());
 
     let data_page_str = serde_json::to_string(&data_page).unwrap();
+    let escaped_data_page = escape_single_quoted_attribute(&data_page_str);
 
     let html = if is_dev() {
-        dev_html_shell(&data_page_str)
+        dev_html_shell(&escaped_data_page)
     } else {
         let html_path = dist_dir().join("index.html");
         let html = read_to_string(&html_path)
             .unwrap_or_else(|e| panic!("Failed to read {:?}: {}", html_path, e));
-        html.replace("{{DATA_PAGE}}", &data_page_str)
+        html.replace("{{DATA_PAGE}}", &escaped_data_page)
     };
 
     // Replace the placeholder with the actual data-page attribute
-    let html = html.replace("{{DATA_PAGE}}", &data_page_str);
+    let html = html.replace("{{DATA_PAGE}}", &escaped_data_page);
 
     // Serve the modified HTML
     HttpResponse::Ok().content_type("text/html").body(html)
@@ -104,4 +105,12 @@ fn dev_html_shell(data_page_json: &str) -> String {
         entry = entry,
         data_page = data_page_json
     )
+}
+
+fn escape_single_quoted_attribute(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('\'', "&#39;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
 }
