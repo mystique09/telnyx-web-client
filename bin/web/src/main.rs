@@ -64,6 +64,7 @@ async fn main() -> eyre::Result<()> {
 
     let session_secret = config.session_secret.clone();
     let telnyx_public_key = config.telnyx_public_key.clone();
+    let telnyx_webhook_forward_urls = config.telnyx_webhook_forward_urls.clone();
     let server = HttpServer::new(move || {
         let session_secret = session_secret.clone();
         create_web_service(
@@ -77,6 +78,7 @@ async fn main() -> eyre::Result<()> {
             token_service.clone(),
             outbound_message_service.clone(),
             telnyx_public_key.clone(),
+            telnyx_webhook_forward_urls.clone(),
             message_event_broadcaster.clone(),
         )
     })

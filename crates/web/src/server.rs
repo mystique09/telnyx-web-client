@@ -28,6 +28,7 @@ use crate::{
     middlewares::auth::ProtectedMiddleware,
     realtime::MessageEventBroadcaster,
     session::get_user_id,
+    webhook_forwarding::TelnyxWebhookForwarder,
 };
 use application::usecases::get_dashboard_home_usecase::GetDashboardHomeUsecase;
 use domain::repositories::conversation_repository::ConversationRepository;
@@ -50,6 +51,7 @@ pub fn create_web_service(
     token_service: Arc<dyn TokenService>,
     outbound_message_service: Arc<dyn OutboundMessageService>,
     telnyx_public_key: String,
+    telnyx_webhook_forward_urls: Vec<String>,
     message_event_broadcaster: Arc<MessageEventBroadcaster>,
 ) -> App<
     impl ServiceFactory<
@@ -87,6 +89,9 @@ pub fn create_web_service(
         .app_data(web::Data::new(token_service.clone()))
         .app_data(web::Data::new(outbound_message_service))
         .app_data(web::Data::new(telnyx_public_key))
+        .app_data(web::Data::new(TelnyxWebhookForwarder::new(
+            telnyx_webhook_forward_urls,
+        )))
         .app_data(web::Data::new(message_event_broadcaster))
         .route("/", web::get().to(index).wrap(ProtectedMiddleware::new()))
         .service(build_conversations_service())

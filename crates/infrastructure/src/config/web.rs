@@ -12,6 +12,7 @@ pub struct WebConfig {
     pub telnyx_messaging_profile_id: String,
     pub telnyx_api_base_url: String,
     pub telnyx_public_key: String,
+    pub telnyx_webhook_forward_urls: Vec<String>,
 }
 
 impl WebConfig {
@@ -39,6 +40,17 @@ impl WebConfig {
             .unwrap_or_else(|_| "https://api.telnyx.com".to_string());
         let telnyx_public_key = std::env::var("TELNYX_PUBLIC_KEY")
             .map_err(|_| ConfigError::EnvVarNotFound("TELNYX_PUBLIC_KEY".to_string()))?;
+        let telnyx_webhook_forward_urls = std::env::var("TELNYX_WEBHOOK_FORWARD_URLS")
+            .ok()
+            .map(|value| {
+                value
+                    .split(',')
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .map(ToOwned::to_owned)
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
 
         Ok(Self::builder()
             .host(host)
@@ -49,6 +61,7 @@ impl WebConfig {
             .telnyx_messaging_profile_id(telnyx_messaging_profile_id)
             .telnyx_api_base_url(telnyx_api_base_url)
             .telnyx_public_key(telnyx_public_key)
+            .telnyx_webhook_forward_urls(telnyx_webhook_forward_urls)
             .build())
     }
 

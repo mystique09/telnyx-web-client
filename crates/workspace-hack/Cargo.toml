@@ -33,6 +33,7 @@ hashbrown = { version = "0.16" }
 idna = { version = "1" }
 indexmap = { version = "2", features = ["serde"] }
 log = { version = "0.4", default-features = false, features = ["std"] }
+memchr = { version = "2" }
 mio = { version = "1", features = ["net", "os-ext"] }
 percent-encoding = { version = "2" }
 postcard = { version = "1", features = ["use-std"] }
@@ -44,7 +45,8 @@ refinery-core = { version = "0.9", features = ["tokio-postgres", "toml"] }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa-build", "dfa-onepass", "hybrid", "meta", "nfa-backtrack", "perf-inline", "perf-literal", "std", "unicode"] }
 serde = { version = "1", features = ["alloc", "derive", "rc"] }
 serde_core = { version = "1", default-features = false, features = ["alloc", "rc", "result", "std"] }
-smallvec = { version = "1", default-features = false, features = ["const_generics", "serde"] }
+sha2 = { version = "0.10" }
+smallvec = { version = "1", default-features = false, features = ["const_new", "serde"] }
 subtle = { version = "2" }
 syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
 time = { version = "0.3", features = ["formatting", "macros", "parsing", "serde"] }
@@ -53,6 +55,7 @@ tokio-util = { version = "0.7", features = ["codec", "io"] }
 tracing = { version = "0.1", features = ["log"] }
 tracing-core = { version = "0.1" }
 uuid = { version = "1", features = ["serde", "v4", "v7"] }
+zeroize = { version = "1" }
 
 [build-dependencies]
 actix-router = { version = "0.5", default-features = false, features = ["http", "unicode"] }
@@ -73,6 +76,7 @@ hashbrown = { version = "0.16" }
 idna = { version = "1" }
 indexmap = { version = "2", features = ["serde"] }
 log = { version = "0.4", default-features = false, features = ["std"] }
+memchr = { version = "2" }
 mio = { version = "1", features = ["net", "os-ext"] }
 percent-encoding = { version = "2" }
 postcard = { version = "1", features = ["use-std"] }
@@ -83,7 +87,8 @@ refinery-core = { version = "0.9", features = ["tokio-postgres", "toml"] }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa-build", "dfa-onepass", "hybrid", "meta", "nfa-backtrack", "perf-inline", "perf-literal", "std", "unicode"] }
 serde = { version = "1", features = ["alloc", "derive", "rc"] }
 serde_core = { version = "1", default-features = false, features = ["alloc", "rc", "result", "std"] }
-smallvec = { version = "1", default-features = false, features = ["const_generics", "serde"] }
+sha2 = { version = "0.10" }
+smallvec = { version = "1", default-features = false, features = ["const_new", "serde"] }
 subtle = { version = "2" }
 syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
 time = { version = "0.3", features = ["formatting", "macros", "parsing", "serde"] }

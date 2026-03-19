@@ -7,6 +7,7 @@ pub mod realtime;
 pub mod server;
 pub(crate) mod session;
 pub mod types;
+pub(crate) mod webhook_forwarding;
 
 use serde::{Serialize, Serializer, ser::SerializeMap};
 

@@ -4456,6 +4456,7 @@ dependencies = [
  "domain",
  "futures-util",
  "garde",
+ "reqwest",
  "serde",
  "serde_json",
  "telnyx",
@@ -4886,6 +4887,7 @@ dependencies = [
  "idna",
  "indexmap",
  "log",
+ "memchr",
  "mio",
  "percent-encoding",
  "postcard",
@@ -4897,6 +4899,7 @@ dependencies = [
  "regex-automata",
  "serde",
  "serde_core",
+ "sha2",
  "smallvec",
  "subtle",
  "syn",
@@ -4906,6 +4909,7 @@ dependencies = [
  "tracing",
  "tracing-core",
  "uuid",
+ "zeroize",
 ]
 
 [[package]]
