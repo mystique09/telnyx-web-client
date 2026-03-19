@@ -26,6 +26,7 @@ use tracing::{error, warn};
 use crate::{
     dto::{ConversationProps, MessageEventProps, MessageProps},
     realtime::MessageEventBroadcaster,
+    webhook_forwarding::TelnyxWebhookForwarder,
 };
 
 #[derive(Debug, Serialize)]
@@ -42,6 +43,7 @@ pub async fn handle_telnyx_messaging_webhook(
     phone_number_repository: web::Data<Arc<dyn PhoneNumberRepository>>,
     processed_webhook_event_repository: web::Data<Arc<dyn ProcessedWebhookEventRepository>>,
     message_event_broadcaster: web::Data<Arc<MessageEventBroadcaster>>,
+    webhook_forwarder: web::Data<TelnyxWebhookForwarder>,
 ) -> impl Responder {
     let signature_header = req
         .headers()
@@ -67,6 +69,13 @@ pub async fn handle_telnyx_messaging_webhook(
             });
         }
     };
+
+    webhook_forwarder.forward_verified_webhook(
+        body.to_vec(),
+        collect_forwarded_headers(req.headers()),
+        webhook.data.id.clone(),
+        webhook.data.event_type.clone(),
+    );
 
     let raw_payload = match serde_json::from_slice::<serde_json::Value>(body.as_ref()) {
         Ok(raw_payload) => raw_payload,
@@ -165,4 +174,16 @@ fn log_webhook_error(err: &UsecaseError) {
             error!("failed to process Telnyx webhook: {}", err);
         }
     }
+}
+
+fn collect_forwarded_headers(headers: &actix_web::http::header::HeaderMap) -> Vec<(String, String)> {
+    headers
+        .iter()
+        .filter_map(|(name, value)| {
+            value
+                .to_str()
+                .ok()
+                .map(|value| (name.as_str().to_owned(), value.to_owned()))
+        })
+        .collect()
 }
