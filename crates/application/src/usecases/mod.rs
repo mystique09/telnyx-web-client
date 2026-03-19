@@ -1,4 +1,5 @@
 pub mod create_conversation_usecase;
+pub mod create_message_usecase;
 pub mod create_phone_number_usecase;
 pub mod create_user_usecase;
 pub mod delete_conversation_usecase;
@@ -7,10 +8,13 @@ pub mod get_conversation_usecase;
 pub mod get_dashboard_home_usecase;
 pub mod get_phone_number_usecase;
 pub mod list_conversations_usecase;
+pub mod list_messages_by_conversation_usecase;
 pub mod list_phone_numbers_usecase;
 pub mod login_usecase;
+pub mod process_telnyx_messaging_webhook_usecase;
 
 use domain::repositories::RepositoryError;
+use domain::traits::outbound_message_service::OutboundMessageError;
 use garde::Report;
 
 #[derive(Debug, thiserror::Error)]
@@ -35,6 +39,12 @@ pub enum UsecaseError {
 
     #[error("Database error: {0}")]
     Database(String),
+
+    #[error("Message rejected: {0}")]
+    MessageRejected(String),
+
+    #[error("External service error: {0}")]
+    ExternalService(String),
 }
 
 impl From<Report> for UsecaseError {
@@ -97,6 +107,19 @@ impl UsecaseError {
                 "An error occurred while generating authentication token".to_string()
             }
             UsecaseError::Database(_) => "An error occurred while saving your account".to_string(),
+            UsecaseError::MessageRejected(message) => message.to_owned(),
+            UsecaseError::ExternalService(_) => {
+                "An external service is unavailable right now".to_string()
+            }
+        }
+    }
+}
+
+impl From<OutboundMessageError> for UsecaseError {
+    fn from(value: OutboundMessageError) -> Self {
+        match value {
+            OutboundMessageError::Rejected(message) => Self::MessageRejected(message),
+            OutboundMessageError::Unavailable(message) => Self::ExternalService(message),
         }
     }
 }

@@ -1,4 +1,5 @@
 use garde::Validate;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 #[derive(Debug, Validate, Clone)]
@@ -64,6 +65,7 @@ impl ResetPasswordCommand {
 pub struct CreateConversationCommand {
     pub user_id: Uuid,
     pub phone_number_id: Uuid,
+    pub recipient_phone_number: String,
 }
 
 #[derive(Debug, Clone)]
@@ -71,4 +73,45 @@ pub struct CreatePhoneNumberCommand {
     pub user_id: Uuid,
     pub name: String,
     pub phone: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateMessageCommand {
+    pub user_id: Uuid,
+    pub conversation_id: Uuid,
+    pub content: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ProcessTelnyxWebhookCommand {
+    pub event_id: String,
+    pub event_type: String,
+    pub occurred_at: OffsetDateTime,
+    pub payload: TelnyxWebhookMessagePayload,
+    pub raw_payload: serde_json::Value,
+}
+
+#[derive(Debug, Clone)]
+pub struct TelnyxWebhookMessagePayload {
+    pub provider_message_id: String,
+    pub from_phone_number: Option<String>,
+    pub to: Vec<TelnyxWebhookMessageParticipant>,
+    pub text: Option<String>,
+    pub received_at: Option<OffsetDateTime>,
+    pub sent_at: Option<OffsetDateTime>,
+    pub completed_at: Option<OffsetDateTime>,
+    pub errors: Vec<TelnyxWebhookMessageError>,
+}
+
+#[derive(Debug, Clone)]
+pub struct TelnyxWebhookMessageParticipant {
+    pub phone_number: Option<String>,
+    pub status: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct TelnyxWebhookMessageError {
+    pub code: Option<String>,
+    pub detail: Option<String>,
+    pub title: Option<String>,
 }

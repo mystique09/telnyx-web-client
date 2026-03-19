@@ -54,6 +54,12 @@ impl ResponseError for WebError {
                 application::usecases::UsecaseError::TokenGenerationFailed => {
                     actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
                 }
+                application::usecases::UsecaseError::MessageRejected(_) => {
+                    actix_web::http::StatusCode::UNPROCESSABLE_ENTITY
+                }
+                application::usecases::UsecaseError::ExternalService(_) => {
+                    actix_web::http::StatusCode::BAD_GATEWAY
+                }
                 application::usecases::UsecaseError::Database(_) => {
                     actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
                 }

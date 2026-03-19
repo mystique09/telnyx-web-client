@@ -1,6 +1,6 @@
 use time::OffsetDateTime;
 
-#[derive(Debug, bon::Builder)]
+#[derive(Debug, Clone, bon::Builder)]
 pub struct PhoneNumber {
     pub id: uuid::Uuid,
     pub user_id: uuid::Uuid,

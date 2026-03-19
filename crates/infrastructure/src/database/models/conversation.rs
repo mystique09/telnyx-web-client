@@ -10,6 +10,7 @@ pub struct Conversation {
     pub id: Uuid,
     pub phone_number_id: Uuid,
     pub user_id: Uuid,
+    pub recipient_phone_number: Option<String>,
     pub last_message_at: DateTime,
     pub created_at: DateTime,
     pub updated_at: DateTime,
@@ -23,6 +24,7 @@ impl From<&Conversation> for domain::models::conversation::Conversation {
             .id(value.id.into_domain())
             .phone_number_id(value.phone_number_id.into_domain())
             .user_id(value.user_id.into_domain())
+            .maybe_recipient_phone_number(value.recipient_phone_number.to_owned())
             .last_message_at(datetime_to_offset_datetime(
                 value.last_message_at.to_owned(),
             ))
@@ -38,6 +40,7 @@ impl From<&domain::models::conversation::Conversation> for Conversation {
             .id(value.id.into_db())
             .phone_number_id(value.phone_number_id.into_db())
             .user_id(value.user_id.into_db())
+            .maybe_recipient_phone_number(value.recipient_phone_number.to_owned())
             .last_message_at(offset_datetime_to_datetime(value.last_message_at))
             .created_at(offset_datetime_to_datetime(value.created_at))
             .updated_at(offset_datetime_to_datetime(value.updated_at))

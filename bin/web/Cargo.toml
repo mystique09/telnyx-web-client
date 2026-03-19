@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 workspace-hack = { version = "0.1", path = "../../crates/workspace-hack" }
 infrastructure = { path = "../../crates/infrastructure" }
+telnyx = { path = "../../crates/telnyx" }
 web = { path = "../../crates/web" }
 
 dotenvy.workspace = true

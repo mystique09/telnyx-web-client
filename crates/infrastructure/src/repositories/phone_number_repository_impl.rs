@@ -47,6 +47,20 @@ impl PhoneNumberRepository for PhoneNumberRepositoryImpl {
         Ok(PhoneNumber::from(&phone_number))
     }
 
+    async fn find_by_phone(&self, phone: &str) -> Result<PhoneNumber, RepositoryError> {
+        let phone_number = database::models::phone_number::PhoneNumber::select_by_map(
+            self.pool.as_ref(),
+            value! { "phone": phone },
+        )
+        .await
+        .map_err(|e| e.to_repository_error())?
+        .into_iter()
+        .next()
+        .ok_or(RepositoryError::NotFound)?;
+
+        Ok(PhoneNumber::from(&phone_number))
+    }
+
     async fn list_by_user_id(
         &self,
         user_id: &uuid::Uuid,

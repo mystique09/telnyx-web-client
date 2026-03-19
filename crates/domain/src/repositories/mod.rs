@@ -1,6 +1,7 @@
 pub mod conversation_repository;
 pub mod message_repository;
 pub mod phone_number_repository;
+pub mod processed_webhook_event_repository;
 pub mod user_repository;
 
 #[derive(Debug, thiserror::Error)]

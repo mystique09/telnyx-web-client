@@ -8,15 +8,17 @@ use infrastructure::{
         conversation_repository_impl::ConversationRepositoryImpl,
         message_repository_impl::MessageRepositoryImpl,
         phone_number_repository_impl::PhoneNumberRepositoryImpl,
+        processed_webhook_event_repository_impl::ProcessedWebhookEventRepositoryImpl,
         user_repository_impl::UserRepositoryImpl,
     },
     security::argon2_hasher::Argon2Hasher,
     security::paseto_tokenizer::PasetoAuthenticationTokenService,
 };
+use telnyx::TelnyxClient;
 use tracing::{info, subscriber::set_global_default};
 use tracing_log::LogTracer;
 use tracing_subscriber::{EnvFilter, Registry, layer::SubscriberExt};
-use web::server::create_web_service;
+use web::{realtime::MessageEventBroadcaster, server::create_web_service};
 
 #[actix_web::main]
 async fn main() -> eyre::Result<()> {
@@ -37,13 +39,31 @@ async fn main() -> eyre::Result<()> {
             .build(),
     );
     let message_repository = Arc::new(MessageRepositoryImpl::builder().pool(pool.clone()).build());
-    let phone_number_repository = Arc::new(PhoneNumberRepositoryImpl::builder().pool(pool).build());
+    let phone_number_repository = Arc::new(
+        PhoneNumberRepositoryImpl::builder()
+            .pool(pool.clone())
+            .build(),
+    );
+    let processed_webhook_event_repository = Arc::new(
+        ProcessedWebhookEventRepositoryImpl::builder()
+            .pool(pool.clone())
+            .build(),
+    );
     let password_hasher = Arc::new(Argon2Hasher::new());
     let token_service = Arc::new(PasetoAuthenticationTokenService::new(
         &config.paseto_symmetric_key,
     )?);
+    let outbound_message_service = Arc::new(
+        TelnyxClient::builder()
+            .api_key(config.telnyx_api_key.clone())
+            .base_url(config.telnyx_api_base_url.clone())
+            .messaging_profile_id(config.telnyx_messaging_profile_id.clone())
+            .build(),
+    );
+    let message_event_broadcaster = Arc::new(MessageEventBroadcaster::default());
 
     let session_secret = config.session_secret.clone();
+    let telnyx_public_key = config.telnyx_public_key.clone();
     let server = HttpServer::new(move || {
         let session_secret = session_secret.clone();
         create_web_service(
@@ -52,8 +72,12 @@ async fn main() -> eyre::Result<()> {
             conversation_repository.clone(),
             message_repository.clone(),
             phone_number_repository.clone(),
+            processed_webhook_event_repository.clone(),
             password_hasher.clone(),
             token_service.clone(),
+            outbound_message_service.clone(),
+            telnyx_public_key.clone(),
+            message_event_broadcaster.clone(),
         )
     })
     .workers(5)

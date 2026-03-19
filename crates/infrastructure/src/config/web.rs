@@ -8,6 +8,10 @@ pub struct WebConfig {
     pub port: u16,
     pub paseto_symmetric_key: String,
     pub session_secret: String,
+    pub telnyx_api_key: String,
+    pub telnyx_messaging_profile_id: String,
+    pub telnyx_api_base_url: String,
+    pub telnyx_public_key: String,
 }
 
 impl WebConfig {
@@ -27,12 +31,24 @@ impl WebConfig {
 
         let session_secret = std::env::var("SESSION_SECRET")
             .map_err(|_| ConfigError::EnvVarNotFound("SESSION_SECRET".to_string()))?;
+        let telnyx_api_key = std::env::var("TELNYX_API_KEY")
+            .map_err(|_| ConfigError::EnvVarNotFound("TELNYX_API_KEY".to_string()))?;
+        let telnyx_messaging_profile_id = std::env::var("TELNYX_MESSAGING_PROFILE_ID")
+            .map_err(|_| ConfigError::EnvVarNotFound("TELNYX_MESSAGING_PROFILE_ID".to_string()))?;
+        let telnyx_api_base_url = std::env::var("TELNYX_API_BASE_URL")
+            .unwrap_or_else(|_| "https://api.telnyx.com".to_string());
+        let telnyx_public_key = std::env::var("TELNYX_PUBLIC_KEY")
+            .map_err(|_| ConfigError::EnvVarNotFound("TELNYX_PUBLIC_KEY".to_string()))?;
 
         Ok(Self::builder()
             .host(host)
             .port(port)
             .paseto_symmetric_key(paseto_symmetric_key)
             .session_secret(session_secret)
+            .telnyx_api_key(telnyx_api_key)
+            .telnyx_messaging_profile_id(telnyx_messaging_profile_id)
+            .telnyx_api_base_url(telnyx_api_base_url)
+            .telnyx_public_key(telnyx_public_key)
             .build())
     }
 

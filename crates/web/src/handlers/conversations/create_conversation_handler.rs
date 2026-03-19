@@ -29,6 +29,7 @@ pub async fn handle_create_conversation(
     let cmd = CreateConversationCommand {
         user_id,
         phone_number_id: create_req.phone_number_id,
+        recipient_phone_number: create_req.recipient_phone_number.clone(),
     };
 
     let create_conversation_usecase = CreateConversationUsecase::builder()
@@ -53,6 +54,19 @@ pub async fn handle_create_conversation(
             );
 
             match err {
+                UsecaseError::Validation(_) => {
+                    if req.headers().contains_key("x-inertia") {
+                        set_flash(
+                            &session,
+                            FlashProps::error("Recipient phone number is required."),
+                        );
+                        return HttpResponse::Found()
+                            .append_header((LOCATION, "/conversations"))
+                            .finish();
+                    }
+
+                    HttpResponse::BadRequest().finish()
+                }
                 UsecaseError::Database(_) => HttpResponse::BadRequest().finish(),
                 _ => HttpResponse::InternalServerError().finish(),
             }

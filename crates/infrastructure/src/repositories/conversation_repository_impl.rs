@@ -33,6 +33,27 @@ impl ConversationRepository for ConversationRepositoryImpl {
         Ok(())
     }
 
+    async fn update_conversation(
+        &self,
+        conversation: &Conversation,
+    ) -> Result<(), RepositoryError> {
+        self.find_by_id(&conversation.user_id, &conversation.id)
+            .await?;
+        let updated_conversation = database::models::conversation::Conversation::from(conversation);
+        let conversation_id = updated_conversation.id.clone();
+        let user_id = updated_conversation.user_id.clone();
+
+        database::models::conversation::Conversation::update_by_map(
+            self.pool.as_ref(),
+            &updated_conversation,
+            value! { "id": conversation_id, "user_id": user_id },
+        )
+        .await
+        .map_err(|e| e.to_repository_error())?;
+
+        Ok(())
+    }
+
     async fn find_by_id(
         &self,
         user_id: &uuid::Uuid,
@@ -43,6 +64,31 @@ impl ConversationRepository for ConversationRepositoryImpl {
         let conversation = database::models::conversation::Conversation::select_by_map(
             self.pool.as_ref(),
             value! { "id": id_db, "user_id": user_id_db },
+        )
+        .await
+        .map_err(|e| e.to_repository_error())?
+        .into_iter()
+        .next()
+        .ok_or(RepositoryError::NotFound)?;
+
+        Ok(Conversation::from(&conversation))
+    }
+
+    async fn find_by_phone_number_and_recipient(
+        &self,
+        user_id: &uuid::Uuid,
+        phone_number_id: &uuid::Uuid,
+        recipient_phone_number: &str,
+    ) -> Result<Conversation, RepositoryError> {
+        let user_id_db = user_id.into_db();
+        let phone_number_id_db = phone_number_id.into_db();
+        let conversation = database::models::conversation::Conversation::select_by_map(
+            self.pool.as_ref(),
+            value! {
+                "user_id": user_id_db,
+                "phone_number_id": phone_number_id_db,
+                "recipient_phone_number": recipient_phone_number
+            },
         )
         .await
         .map_err(|e| e.to_repository_error())?

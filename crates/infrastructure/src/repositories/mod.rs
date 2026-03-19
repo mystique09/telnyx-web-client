@@ -3,6 +3,7 @@ use domain::repositories::RepositoryError;
 pub mod conversation_repository_impl;
 pub mod message_repository_impl;
 pub mod phone_number_repository_impl;
+pub mod processed_webhook_event_repository_impl;
 pub mod user_repository_impl;
 
 pub trait RbsErrorExt {
@@ -17,7 +18,7 @@ impl RbsErrorExt for rbs::Error {
                     return RepositoryError::DatabaseError(e.to_owned());
                 }
 
-                if e.contains("unique_violation") {
+                if e.contains("23505") || e.contains("unique_violation") {
                     return RepositoryError::ConstraintViolation(e.to_owned());
                 }
 

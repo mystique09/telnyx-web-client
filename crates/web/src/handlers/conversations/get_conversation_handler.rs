@@ -5,14 +5,16 @@ use actix_web::{HttpRequest, Responder, web};
 use application::usecases::UsecaseError;
 use application::usecases::get_conversation_usecase::GetConversationUsecase;
 use application::usecases::list_conversations_usecase::ListConversationsUsecase;
+use application::usecases::list_messages_by_conversation_usecase::ListMessagesByConversationUsecase;
 use application::usecases::list_phone_numbers_usecase::ListPhoneNumbersUsecase;
 use domain::repositories::conversation_repository::ConversationRepository;
+use domain::repositories::message_repository::MessageRepository;
 use domain::repositories::phone_number_repository::PhoneNumberRepository;
 use serde::Serialize;
 use tracing::error;
 
 use crate::{
-    dto::{ConversationProps, FlashProps, PhoneNumberProps},
+    dto::{ConversationProps, FlashProps, MessageProps, PhoneNumberProps},
     flash::extract_flash,
     inertia::Page,
     session::get_user_id,
@@ -24,6 +26,7 @@ struct ConversationPageProps {
     pub flash: Option<FlashProps>,
     pub conversations: Vec<ConversationProps>,
     pub conversation: Option<ConversationProps>,
+    pub messages: Vec<MessageProps>,
     pub phone_numbers: Vec<PhoneNumberProps>,
 }
 
@@ -32,6 +35,7 @@ pub async fn render_get_conversation(
     path: web::Path<uuid::Uuid>,
     session: Session,
     conversation_repository: web::Data<Arc<dyn ConversationRepository>>,
+    message_repository: web::Data<Arc<dyn MessageRepository>>,
     phone_number_repository: web::Data<Arc<dyn PhoneNumberRepository>>,
 ) -> impl Responder {
     let conversation_id = path.into_inner();
@@ -43,11 +47,14 @@ pub async fn render_get_conversation(
     let list_conversations_usecase = ListConversationsUsecase::builder()
         .conversation_repository(conversation_repository.get_ref().clone())
         .build();
+    let list_messages_by_conversation_usecase = ListMessagesByConversationUsecase::builder()
+        .message_repository(message_repository.get_ref().clone())
+        .build();
     let list_phone_numbers_usecase = ListPhoneNumbersUsecase::builder()
         .phone_number_repository(phone_number_repository.get_ref().clone())
         .build();
 
-    let (conversation, conversations, phone_numbers) = match session_user_id(&session) {
+    let (conversation, conversations, messages, phone_numbers) = match session_user_id(&session) {
         Some(user_id) => {
             let conversation = match get_conversation_usecase
                 .execute(user_id, conversation_id)
@@ -62,6 +69,24 @@ pub async fn render_get_conversation(
                     );
                     None
                 }
+            };
+
+            let messages = if conversation.is_some() {
+                match list_messages_by_conversation_usecase
+                    .execute(user_id, conversation_id)
+                    .await
+                {
+                    Ok(items) => items.iter().map(MessageProps::from).collect(),
+                    Err(err) => {
+                        error!(
+                            "failed to list messages for conversation {} and user {}: {}",
+                            conversation_id, user_id, err
+                        );
+                        Vec::new()
+                    }
+                }
+            } else {
+                Vec::new()
             };
 
             let conversations = match list_conversations_usecase.execute(user_id).await {
@@ -80,9 +105,9 @@ pub async fn render_get_conversation(
                 }
             };
 
-            (conversation, conversations, phone_numbers)
+            (conversation, conversations, messages, phone_numbers)
         }
-        None => (None, Vec::new(), Vec::new()),
+        None => (None, Vec::new(), Vec::new(), Vec::new()),
     };
 
     Page::builder()
@@ -92,6 +117,7 @@ pub async fn render_get_conversation(
             flash,
             conversations,
             conversation,
+            messages,
             phone_numbers,
         })
         .build()

@@ -21,17 +21,21 @@ use crate::{
     flash::{clear_flash, extract_flash},
     handlers::{
         auth::build_auth_service, conversations::build_conversations_service, inertia::version,
-        phone_numbers::build_phone_numbers_service,
+        events::build_events_service, phone_numbers::build_phone_numbers_service,
+        webhooks::build_webhooks_service,
     },
     inertia::{Page, dist_dir, is_dev, response_with_html},
     middlewares::auth::ProtectedMiddleware,
+    realtime::MessageEventBroadcaster,
     session::get_user_id,
 };
 use application::usecases::get_dashboard_home_usecase::GetDashboardHomeUsecase;
 use domain::repositories::conversation_repository::ConversationRepository;
 use domain::repositories::message_repository::MessageRepository;
 use domain::repositories::phone_number_repository::PhoneNumberRepository;
+use domain::repositories::processed_webhook_event_repository::ProcessedWebhookEventRepository;
 use domain::repositories::user_repository::UserRepository;
+use domain::traits::outbound_message_service::OutboundMessageService;
 use domain::traits::password_hasher::PasswordHasher;
 use domain::traits::token_service::TokenService;
 
@@ -41,8 +45,12 @@ pub fn create_web_service(
     conversation_repository: Arc<dyn ConversationRepository>,
     message_repository: Arc<dyn MessageRepository>,
     phone_number_repository: Arc<dyn PhoneNumberRepository>,
+    processed_webhook_event_repository: Arc<dyn ProcessedWebhookEventRepository>,
     password_hasher: Arc<dyn PasswordHasher>,
     token_service: Arc<dyn TokenService>,
+    outbound_message_service: Arc<dyn OutboundMessageService>,
+    telnyx_public_key: String,
+    message_event_broadcaster: Arc<MessageEventBroadcaster>,
 ) -> App<
     impl ServiceFactory<
         ServiceRequest,
@@ -75,11 +83,17 @@ pub fn create_web_service(
         .app_data(web::Data::new(conversation_repository))
         .app_data(web::Data::new(message_repository))
         .app_data(web::Data::new(phone_number_repository))
+        .app_data(web::Data::new(processed_webhook_event_repository))
         .app_data(web::Data::new(token_service.clone()))
+        .app_data(web::Data::new(outbound_message_service))
+        .app_data(web::Data::new(telnyx_public_key))
+        .app_data(web::Data::new(message_event_broadcaster))
         .route("/", web::get().to(index).wrap(ProtectedMiddleware::new()))
         .service(build_conversations_service())
+        .service(build_events_service())
         .service(build_phone_numbers_service())
         .service(build_auth_service())
+        .service(build_webhooks_service())
         .service(
             web::scope("/version")
                 .wrap(VersionMiddleware::new("1".to_string()))

@@ -3,6 +3,7 @@ pub(crate) mod flash;
 pub(crate) mod handlers;
 pub(crate) mod inertia;
 pub(crate) mod middlewares;
+pub mod realtime;
 pub mod server;
 pub(crate) mod session;
 pub mod types;

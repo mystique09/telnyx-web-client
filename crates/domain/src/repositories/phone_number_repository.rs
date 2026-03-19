@@ -10,6 +10,7 @@ pub trait PhoneNumberRepository: Send + Sync + 'static {
         user_id: &uuid::Uuid,
         id: &uuid::Uuid,
     ) -> Result<PhoneNumber, RepositoryError>;
+    async fn find_by_phone(&self, phone: &str) -> Result<PhoneNumber, RepositoryError>;
     async fn list_by_user_id(
         &self,
         user_id: &uuid::Uuid,

@@ -12,7 +12,10 @@ pub use auth::{
     ForgotPasswordRequest, LoginErrorProps, LoginRequest, LoginResponse, ResetPasswordRequest,
     SignupErrorProps, SignupRequest,
 };
-pub use conversation::{ConversationProps, CreateConversationRequest, CreateConversationResponse};
+pub use conversation::{
+    ConversationProps, CreateConversationRequest, CreateConversationResponse, CreateMessageRequest,
+    CreateMessageResponse, MessageEventProps, MessageProps,
+};
 pub use dashboard::DashboardAnalyticsProps;
 pub use flash::FlashProps;
 pub use phone_number::{CreatePhoneNumberRequest, CreatePhoneNumberResponse, PhoneNumberProps};
