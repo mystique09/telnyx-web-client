@@ -1,13 +1,24 @@
 # Telnyx Web Client
 
-Web application for sending and receiving Telnyx messages, built as a Rust + React monorepo with Inertia.js.
+Web application for sending and receiving Telnyx messages, built as a Rust + React monorepo with Inertia.js. The current app supports outbound SMS through Telnyx, verified Telnyx messaging webhooks, realtime message updates over SSE, and optional forwarding of verified webhook events to additional Telnyx-compatible endpoints.
 
 ## Tech Stack
 
 - Backend: Rust (Edition 2024), Actix Web, Inertia integration (`actix-inertia`)
+- Telnyx integration: `reqwest`, Ed25519 webhook verification
 - Frontend: React 19, TypeScript 5.9, Vite (rolldown-vite), Tailwind CSS v4, shadcn/ui
 - Data: PostgreSQL (`rbatis`, `rbdc-pg`, `bb8`)
 - Architecture: Cargo workspace with DDD-style crate separation
+
+## Current Features
+
+- Session-based authentication
+- Phone number management
+- Conversation creation with recipient phone numbers
+- Outbound Telnyx message sending from `/conversations/{id}/messages`
+- Telnyx messaging webhook processing at `/webhooks/telnyx/messaging`
+- Realtime conversation updates through `GET /events/messages`
+- Optional forwarding of verified Telnyx webhook events to additional webhook endpoints
 
 ## Prerequisites
 
@@ -56,11 +67,28 @@ Set these in `.env`:
 | `PORT` | Yes | Server bind port (example: `8080`) |
 | `PASETO_SEMETRIC_KEY` | Yes | Symmetric key for token service |
 | `SESSION_SECRET` | Yes | Cookie session signing secret |
+| `TELNYX_API_KEY` | Yes | Telnyx API key used for outbound messaging |
+| `TELNYX_MESSAGING_PROFILE_ID` | Yes | Messaging profile ID used in Telnyx send requests |
+| `TELNYX_PUBLIC_KEY` | Yes | Telnyx public key used to verify webhook signatures |
 | `DATABASE_URL` | Yes | PostgreSQL connection URL |
 | `VITE_ORIGIN` | No | Vite dev server origin (default `http://localhost:5173`) |
 | `VITE_ENTRY` | No | Vite entry path for dev shell (recommended `/src/main.tsx`) |
+| `TELNYX_API_BASE_URL` | No | Telnyx API base URL (default `https://api.telnyx.com`) |
+| `TELNYX_WEBHOOK_FORWARD_URLS` | No | Comma-separated list of additional webhook URLs that should receive every verified Telnyx messaging event |
 
 Note: `PASETO_SEMETRIC_KEY` spelling must match exactly; the current code expects that exact key name.
+
+Example forwarding config:
+
+```env
+TELNYX_WEBHOOK_FORWARD_URLS=https://example.com/webhooks/telnyx,https://internal.example.net/telnyx/messaging
+```
+
+Forwarded webhook requests preserve:
+- the original raw JSON body
+- the original incoming Telnyx headers, including `telnyx-signature-ed25519` and `telnyx-timestamp`
+
+Only transport-managed headers such as `host`, `content-length`, and `connection` are excluded.
 
 ## Common Commands
 
@@ -97,6 +125,7 @@ npm run build --prefix ./web
 |  |- application/       # Use cases
 |  |- domain/            # Domain contracts/entities
 |  |- infrastructure/    # DB/config/security implementations
+|  |- telnyx/            # Telnyx API client + webhook verification
 |  `- workspace-hack/    # Shared dependency lock optimization (hakari)
 |- web/
 |  |- src/Pages/         # Inertia pages
@@ -122,5 +151,7 @@ Build artifacts:
 ## Notes
 
 - Auth, conversations, and phone-number routes are implemented under `crates/web/src/handlers/`.
+- Realtime message streaming is implemented under `crates/web/src/handlers/events/` and `crates/web/src/realtime.rs`.
+- Telnyx webhook forwarding is implemented in `crates/web/src/webhook_forwarding.rs`.
 - Inertia page resolution is configured in `web/src/main.tsx`.
 - Vite proxy routes (`/inertia`, `/inertia-version`) are configured in `web/vite.config.ts`.
