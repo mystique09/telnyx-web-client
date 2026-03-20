@@ -200,7 +200,8 @@ pub fn verify_messaging_webhook(
         .map_err(|_| WebhookVerificationError::InvalidSignatureEncoding)?;
     let signature = Signature::from_slice(&signature_bytes)
         .map_err(|_| WebhookVerificationError::InvalidSignatureEncoding)?;
-    let payload = std::str::from_utf8(raw_body).map_err(|_| WebhookVerificationError::InvalidUtf8)?;
+    let payload =
+        std::str::from_utf8(raw_body).map_err(|_| WebhookVerificationError::InvalidUtf8)?;
     let signed_message = format!("{timestamp_header}|{payload}");
 
     verifying_key
@@ -244,8 +245,10 @@ fn decode_hex(value: &str) -> Result<Vec<u8>, WebhookVerificationError> {
     let mut chars = value.as_bytes().chunks_exact(2);
 
     for chunk in &mut chars {
-        let pair = std::str::from_utf8(chunk).map_err(|_| WebhookVerificationError::InvalidPublicKey)?;
-        let byte = u8::from_str_radix(pair, 16).map_err(|_| WebhookVerificationError::InvalidPublicKey)?;
+        let pair =
+            std::str::from_utf8(chunk).map_err(|_| WebhookVerificationError::InvalidPublicKey)?;
+        let byte =
+            u8::from_str_radix(pair, 16).map_err(|_| WebhookVerificationError::InvalidPublicKey)?;
         bytes.push(byte);
     }
 
@@ -466,7 +469,11 @@ mod tests {
         let now = OffsetDateTime::now_utc();
         let timestamp = (now.unix_timestamp() - 301).to_string();
         let payload = b"{\"data\":{\"event_type\":\"message.sent\",\"id\":\"event-1\",\"occurred_at\":\"2024-01-15T21:32:13.596+00:00\",\"payload\":{\"id\":\"provider-message-id\",\"errors\":[],\"to\":[{\"phone_number\":\"+14155551234\",\"status\":\"sent\"}]},\"record_type\":\"event\"}}";
-        let signed_payload = format!("{}|{}", timestamp, std::str::from_utf8(payload).expect("utf8"));
+        let signed_payload = format!(
+            "{}|{}",
+            timestamp,
+            std::str::from_utf8(payload).expect("utf8")
+        );
         let signature = signing_key.sign(signed_payload.as_bytes());
         let signature_header = STANDARD.encode(signature.to_bytes());
 

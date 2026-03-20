@@ -61,6 +61,10 @@ pub fn get_user_id(session: &Session) -> Option<String> {
         })
 }
 
+pub fn session_user_id(session: &Session) -> Option<uuid::Uuid> {
+    get_user_id(session).and_then(|id| uuid::Uuid::parse_str(&id).ok())
+}
+
 /// Get the access token from the session for validation.
 pub fn get_access_token(session: &Session) -> Option<String> {
     if let Some(auth_data) = get_auth_data(session) {

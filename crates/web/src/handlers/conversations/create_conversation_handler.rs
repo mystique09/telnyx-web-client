@@ -11,7 +11,7 @@ use tracing::error;
 use crate::{
     dto::{CreateConversationRequest, CreateConversationResponse, FlashProps},
     flash::set_flash,
-    session::get_user_id,
+    session::session_user_id,
 };
 
 pub async fn handle_create_conversation(
@@ -72,8 +72,4 @@ pub async fn handle_create_conversation(
             }
         }
     }
-}
-
-fn session_user_id(session: &Session) -> Option<uuid::Uuid> {
-    get_user_id(session).and_then(|id| uuid::Uuid::parse_str(&id).ok())
 }

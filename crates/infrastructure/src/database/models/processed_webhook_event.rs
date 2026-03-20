@@ -15,7 +15,9 @@ pub struct ProcessedWebhookEvent {
 
 rbatis::crud!(ProcessedWebhookEvent {}, "processed_webhook_events");
 
-impl From<&ProcessedWebhookEvent> for domain::models::processed_webhook_event::ProcessedWebhookEvent {
+impl From<&ProcessedWebhookEvent>
+    for domain::models::processed_webhook_event::ProcessedWebhookEvent
+{
     fn from(value: &ProcessedWebhookEvent) -> Self {
         Self::builder()
             .event_id(value.event_id.to_owned())
@@ -28,7 +30,9 @@ impl From<&ProcessedWebhookEvent> for domain::models::processed_webhook_event::P
     }
 }
 
-impl From<&domain::models::processed_webhook_event::ProcessedWebhookEvent> for ProcessedWebhookEvent {
+impl From<&domain::models::processed_webhook_event::ProcessedWebhookEvent>
+    for ProcessedWebhookEvent
+{
     fn from(value: &domain::models::processed_webhook_event::ProcessedWebhookEvent) -> Self {
         Self::builder()
             .event_id(value.event_id.to_owned())

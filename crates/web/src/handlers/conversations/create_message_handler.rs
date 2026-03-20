@@ -17,7 +17,7 @@ use tracing::error;
 
 use crate::{
     dto::{CreateMessageRequest, CreateMessageResponse, MessageProps},
-    session::get_user_id,
+    session::session_user_id,
 };
 
 #[derive(Debug, Serialize)]
@@ -81,8 +81,4 @@ pub async fn handle_create_message(
             }
         }
     }
-}
-
-fn session_user_id(session: &Session) -> Option<uuid::Uuid> {
-    get_user_id(session).and_then(|id| uuid::Uuid::parse_str(&id).ok())
 }

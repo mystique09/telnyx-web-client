@@ -36,7 +36,8 @@ impl From<&Message> for domain::models::message::Message {
             .maybe_provider_message_id(value.provider_message_id.to_owned())
             .maybe_provider_status(value.provider_status.to_owned())
             .maybe_provider_status_updated_at(
-                value.provider_status_updated_at
+                value
+                    .provider_status_updated_at
                     .clone()
                     .map(datetime_to_offset_datetime),
             )
@@ -61,7 +62,9 @@ impl From<&domain::models::message::Message> for Message {
             .maybe_provider_message_id(value.provider_message_id.to_owned())
             .maybe_provider_status(value.provider_status.to_owned())
             .maybe_provider_status_updated_at(
-                value.provider_status_updated_at.map(offset_datetime_to_datetime),
+                value
+                    .provider_status_updated_at
+                    .map(offset_datetime_to_datetime),
             )
             .maybe_provider_error_code(value.provider_error_code.to_owned())
             .maybe_provider_error_detail(value.provider_error_detail.to_owned())

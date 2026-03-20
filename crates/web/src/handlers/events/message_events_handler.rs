@@ -1,11 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use actix_session::Session;
-use actix_web::{
-    HttpResponse, Responder, web,
-    http::header,
-    web::Bytes,
-};
+use actix_web::{HttpResponse, Responder, http::header, web, web::Bytes};
 use futures_util::stream::unfold;
 use tokio::{
     sync::broadcast::error::RecvError,
@@ -13,7 +9,7 @@ use tokio::{
 };
 use tracing::error;
 
-use crate::{realtime::MessageEventBroadcaster, session::get_user_id};
+use crate::{realtime::MessageEventBroadcaster, session::session_user_id};
 
 pub async fn stream_message_events(
     session: Session,
@@ -73,8 +69,4 @@ pub async fn stream_message_events(
         .insert_header(("Connection", "keep-alive"))
         .insert_header(("X-Accel-Buffering", "no"))
         .streaming(stream)
-}
-
-fn session_user_id(session: &Session) -> Option<uuid::Uuid> {
-    get_user_id(session).and_then(|id| uuid::Uuid::parse_str(&id).ok())
 }

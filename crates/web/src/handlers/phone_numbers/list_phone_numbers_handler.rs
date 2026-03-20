@@ -6,7 +6,7 @@ use application::usecases::list_phone_numbers_usecase::ListPhoneNumbersUsecase;
 use domain::repositories::phone_number_repository::PhoneNumberRepository;
 use tracing::error;
 
-use crate::{dto::PhoneNumberProps, session::get_user_id};
+use crate::{dto::PhoneNumberProps, session::session_user_id};
 
 pub async fn handle_list_phone_numbers(
     session: Session,
@@ -32,8 +32,4 @@ pub async fn handle_list_phone_numbers(
             HttpResponse::InternalServerError().finish()
         }
     }
-}
-
-fn session_user_id(session: &Session) -> Option<uuid::Uuid> {
-    get_user_id(session).and_then(|id| uuid::Uuid::parse_str(&id).ok())
 }

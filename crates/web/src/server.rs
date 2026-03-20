@@ -20,14 +20,14 @@ use crate::{
     dto::{DashboardAnalyticsProps, FlashProps},
     flash::{clear_flash, extract_flash},
     handlers::{
-        auth::build_auth_service, conversations::build_conversations_service, inertia::version,
-        events::build_events_service, phone_numbers::build_phone_numbers_service,
+        auth::build_auth_service, conversations::build_conversations_service,
+        events::build_events_service, inertia::version, phone_numbers::build_phone_numbers_service,
         webhooks::build_webhooks_service,
     },
     inertia::{Page, dist_dir, is_dev, response_with_html},
     middlewares::auth::ProtectedMiddleware,
     realtime::MessageEventBroadcaster,
-    session::get_user_id,
+    session::session_user_id,
     webhook_forwarding::TelnyxWebhookForwarder,
 };
 use application::usecases::get_dashboard_home_usecase::GetDashboardHomeUsecase;
@@ -196,10 +196,6 @@ async fn index(
         )
         .build()
         .to_responder()
-}
-
-fn session_user_id(session: &Session) -> Option<uuid::Uuid> {
-    get_user_id(session).and_then(|id| uuid::Uuid::parse_str(&id).ok())
 }
 
 fn error_404_error_handler<B>(res: ServiceResponse<B>) -> Result<ErrorHandlerResponse<B>> {

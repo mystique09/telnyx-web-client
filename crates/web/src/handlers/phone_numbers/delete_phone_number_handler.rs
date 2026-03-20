@@ -7,7 +7,7 @@ use application::usecases::delete_phone_number_usecase::DeletePhoneNumberUsecase
 use domain::repositories::phone_number_repository::PhoneNumberRepository;
 use tracing::error;
 
-use crate::session::get_user_id;
+use crate::session::session_user_id;
 
 pub async fn handle_delete_phone_number(
     path: web::Path<uuid::Uuid>,
@@ -38,8 +38,4 @@ pub async fn handle_delete_phone_number(
             HttpResponse::InternalServerError().finish()
         }
     }
-}
-
-fn session_user_id(session: &Session) -> Option<uuid::Uuid> {
-    get_user_id(session).and_then(|id| uuid::Uuid::parse_str(&id).ok())
 }

@@ -7,7 +7,7 @@ use application::usecases::delete_conversation_usecase::DeleteConversationUsecas
 use domain::repositories::conversation_repository::ConversationRepository;
 use tracing::error;
 
-use crate::{dto::FlashProps, flash::set_flash, session::get_user_id};
+use crate::{dto::FlashProps, flash::set_flash, session::session_user_id};
 
 pub async fn handle_delete_conversation(
     req: HttpRequest,
@@ -59,8 +59,4 @@ pub async fn handle_delete_conversation(
             HttpResponse::InternalServerError().finish()
         }
     }
-}
-
-fn session_user_id(session: &Session) -> Option<uuid::Uuid> {
-    get_user_id(session).and_then(|id| uuid::Uuid::parse_str(&id).ok())
 }

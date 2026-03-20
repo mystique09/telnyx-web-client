@@ -7,7 +7,8 @@ use application::usecases::get_phone_number_usecase::GetPhoneNumberUsecase;
 use domain::repositories::phone_number_repository::PhoneNumberRepository;
 use tracing::error;
 
-use crate::{dto::PhoneNumberProps, session::get_user_id};
+use crate::dto::PhoneNumberProps;
+use crate::session::session_user_id;
 
 pub async fn handle_get_phone_number(
     path: web::Path<uuid::Uuid>,
@@ -38,8 +39,4 @@ pub async fn handle_get_phone_number(
             HttpResponse::InternalServerError().finish()
         }
     }
-}
-
-fn session_user_id(session: &Session) -> Option<uuid::Uuid> {
-    get_user_id(session).and_then(|id| uuid::Uuid::parse_str(&id).ok())
 }

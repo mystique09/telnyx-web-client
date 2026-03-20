@@ -1,8 +1,7 @@
 use async_trait::async_trait;
 
 use crate::{
-    models::processed_webhook_event::ProcessedWebhookEvent,
-    repositories::RepositoryError,
+    models::processed_webhook_event::ProcessedWebhookEvent, repositories::RepositoryError,
 };
 
 #[async_trait]

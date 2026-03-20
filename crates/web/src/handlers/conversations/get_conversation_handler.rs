@@ -17,7 +17,7 @@ use crate::{
     dto::{ConversationProps, FlashProps, MessageProps, PhoneNumberProps},
     flash::extract_flash,
     inertia::Page,
-    session::get_user_id,
+    session::session_user_id,
 };
 
 #[derive(Debug, Serialize)]
@@ -122,8 +122,4 @@ pub async fn render_get_conversation(
         })
         .build()
         .to_responder()
-}
-
-fn session_user_id(session: &Session) -> Option<uuid::Uuid> {
-    get_user_id(session).and_then(|id| uuid::Uuid::parse_str(&id).ok())
 }

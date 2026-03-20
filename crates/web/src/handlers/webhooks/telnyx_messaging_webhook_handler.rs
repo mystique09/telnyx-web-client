@@ -176,7 +176,9 @@ fn log_webhook_error(err: &UsecaseError) {
     }
 }
 
-fn collect_forwarded_headers(headers: &actix_web::http::header::HeaderMap) -> Vec<(String, String)> {
+fn collect_forwarded_headers(
+    headers: &actix_web::http::header::HeaderMap,
+) -> Vec<(String, String)> {
     headers
         .iter()
         .filter_map(|(name, value)| {
