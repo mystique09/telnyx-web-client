@@ -13,16 +13,6 @@ services:
     networks:
       - telnyx-web-network
 
-  redis:
-    image: redis:8.2.0-alpine
-    container_name: telnyx-web-redis
-    ports:
-      - "6379:6379"
-    networks:
-      - telnyx-web-network
-    volumes:
-      - telnyx-web-redis:/data
-
 networks:
   telnyx-web-network:
     driver: bridge
@@ -33,4 +23,3 @@ networks:
 
 volumes:
   telnyx-web-postgres:
-  telnyx-web-redis:
