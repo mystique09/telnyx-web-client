@@ -6,11 +6,15 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY web-bin/web-server /app/wev-server
-RUN chmod +x /app/web-server
+ENV MODE=production \
+    HOST=0.0.0.0 \
+    PORT=8080
 
-COPY .env.example /app/.env
+COPY server-bin/web-server /app/server
+COPY web/dist /app/dist
+
+RUN chmod +x /app/server
 
 EXPOSE 8080
 
-ENTRYPOINT ["/app/web-server"]
+ENTRYPOINT ["/app/server"]

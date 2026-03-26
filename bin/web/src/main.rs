@@ -24,7 +24,7 @@ use web::{realtime::MessageEventBroadcaster, server::create_web_service};
 async fn main() -> eyre::Result<()> {
     color_eyre::install()?;
     setup_tracing()?;
-    dotenvy::dotenv()?;
+    let _ = dotenvy::dotenv();
 
     let config = WebConfig::from_env()?;
     let db_config = DatabaseConfig::from_env()?;
