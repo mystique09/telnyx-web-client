@@ -123,4 +123,4 @@ jobs:
           path: web/dist
 
       - name: Build and push Docker image
-        run: docker buildx build --push -t ghcr.io/${{ github.repository }}/api:latest -f scripts/dockerfiles/web.Dockerfile .
+        run: docker buildx build --push -t ghcr.io/${{ github.repository }}/web:latest -f scripts/dockerfiles/web.Dockerfile .
