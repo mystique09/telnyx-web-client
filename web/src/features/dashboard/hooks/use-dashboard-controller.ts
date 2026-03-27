@@ -3,14 +3,16 @@ import { useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import type { PhoneValidationResult } from "@/components/ui/phone-input";
-import type { PhoneNumber } from "@/lib/mock-messaging";
-import type { DashboardPageProps } from "../types";
+import type { DashboardPageProps, DashboardPhoneNumber } from "../types";
 
 export function useDashboardController(props: DashboardPageProps) {
   const { post: postLogout, processing: isLoggingOut } = useForm({});
   const [isCreatingPhoneNumber, setIsCreatingPhoneNumber] = useState(false);
+  const [deletingPhoneNumberId, setDeletingPhoneNumberId] = useState<
+    string | null
+  >(null);
 
-  const phoneNumbers = useMemo<PhoneNumber[]>(
+  const phoneNumbers = useMemo<DashboardPhoneNumber[]>(
     () => {
       return props.phoneNumbers.map((item) => ({
         id: item.id,
@@ -84,6 +86,23 @@ export function useDashboardController(props: DashboardPageProps) {
     postLogout("/auth/logout");
   }
 
+  function deletePhoneNumber(phoneNumberId: string) {
+    if (deletingPhoneNumberId) {
+      return;
+    }
+
+    setDeletingPhoneNumberId(phoneNumberId);
+    router.delete(`/phone-numbers/${encodeURIComponent(phoneNumberId)}`, {
+      preserveScroll: true,
+      onError: () => {
+        toast.error("Unable to delete phone number right now.");
+      },
+      onFinish: () => {
+        setDeletingPhoneNumberId(null);
+      },
+    });
+  }
+
   return {
     isLoggingOut,
     logout,
@@ -100,5 +119,7 @@ export function useDashboardController(props: DashboardPageProps) {
     setPhoneValueInput,
     setPhoneValidation,
     addPhoneNumber,
+    deletingPhoneNumberId,
+    deletePhoneNumber,
   };
 }

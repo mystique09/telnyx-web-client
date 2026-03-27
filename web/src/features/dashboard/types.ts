@@ -9,6 +9,11 @@ export interface DashboardPhoneNumberRecord {
   updatedAt: string;
 }
 
+export type DashboardPhoneNumber = Pick<
+  DashboardPhoneNumberRecord,
+  "id" | "userId" | "name" | "phone"
+>;
+
 export interface DashboardAnalyticsRecord {
   totalConversations: number;
   totalMessages: number;
