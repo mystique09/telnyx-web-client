@@ -1,85 +1,115 @@
+import { BrandMark } from "@/components/brand-mark";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Link } from "@inertiajs/react";
-import { ArrowLeft, Home } from "lucide-react";
+import { ArrowLeft, Compass, Home, Search } from "lucide-react";
 
 function NotFound() {
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-50/50 p-4">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-neutral-200/30 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-neutral-200/30 blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-neutral-100/50 blur-3xl" />
+    <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,rgba(247,247,244,0.98)_0%,rgba(240,239,234,0.94)_100%)]">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-[8%] top-20 size-72 rounded-full bg-[#93a3b2]/18 blur-3xl animate-float-slow" />
+        <div className="absolute bottom-12 right-[10%] size-80 rounded-full bg-[#b4c4af]/18 blur-3xl animate-float-slow [animation-delay:-6s]" />
       </div>
 
-      <div className="absolute inset-0 overflow-hidden bg-neutral-50/50" />
+      <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-6 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between gap-4">
+          <BrandMark />
+          <Badge
+            variant="outline"
+            className="rounded-full border-border/70 bg-background/70 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground"
+          >
+            Error state
+          </Badge>
+        </div>
 
-      <Card className="relative z-10 w-full max-w-md bg-white/80 shadow-xl backdrop-blur-sm gap-1">
-        <CardHeader className="space-y-6 pb-2 text-center">
-          <div className="relative mx-auto">
-            <div className="absolute inset-0 rounded-full bg-amber-100/50 blur-xl" />
-            <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-amber-50 to-orange-50 shadow-inner ring-1 ring-amber-200/50">
-              <span className="text-3xl font-bold text-amber-600">404</span>
-            </div>
-          </div>
+        <div className="flex flex-1 items-center py-10">
+          <div className="grid w-full gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+            <div className="space-y-6">
+              <p className="font-mono text-[11px] uppercase tracking-[0.35em] text-muted-foreground">
+                404
+              </p>
+              <div className="space-y-4">
+                <h1 className="font-display text-5xl font-semibold tracking-tight text-balance text-foreground sm:text-6xl">
+                  That route has gone quiet.
+                </h1>
+                <p className="max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
+                  The page you requested does not exist or has moved. Use the
+                  main workspace routes to get back to active operations.
+                </p>
+              </div>
 
-          <div className="space-y-1">
-            <CardTitle className="text-2xl font-semibold tracking-tight text-neutral-900">
-              Page not found
-            </CardTitle>
-            <CardDescription className="text-sm text-neutral-500">
-              Oops! This page has wandered off into the void.
-            </CardDescription>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-1">
-          <div className="rounded-lg bg-neutral-50/80 p-4 text-center">
-            <p className="text-sm leading-relaxed text-neutral-600">
-              The page you&apos;re looking for doesn&apos;t exist or has been
-              moved. Don&apos;t worry, it happens to the best of us!
-            </p>
-          </div>
-
-          <div className="py-2 flex flex-col gap-2">
-            <p className="text-center text-xs font-medium uppercase tracking-wider text-neutral-400">
-              What you can do
-            </p>
-
-            <div className="grid gap-2">
-              <Link href="/" className="block">
-                <Button
-                  variant="outline"
-                  className="w-full gap-2 bg-neutral-900 text-black transition-all duration-200 hover:bg-neutral-800 hover:shadow-lg active:scale-[0.98]"
-                >
-                  <Home className="h-4 w-4" />
-                  Home
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button asChild className="h-12 rounded-full px-5 text-base">
+                  <Link href="/" className="flex items-center gap-2">
+                    <Home className="size-4" />
+                    Return home
+                  </Link>
                 </Button>
-              </Link>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-12 rounded-full px-5 text-base"
+                  onClick={() => window.history.back()}
+                >
+                  <ArrowLeft className="size-4" />
+                  Go back
+                </Button>
+              </div>
+            </div>
 
-              <Button
-                variant="default"
-                className="w-full gap-2 text-black bg-white transition-all duration-200 hover:bg-neutral-50 active:scale-[0.98] rounded-none"
-                onClick={() => window.history.back()}
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Go Back
-              </Button>
+            <div className="rounded-[2rem] border border-border/80 bg-background/86 p-6 shadow-[0_36px_110px_-60px_rgba(15,23,42,0.55)] sm:p-8">
+              <div className="space-y-5">
+                <div className="flex size-16 items-center justify-center rounded-3xl bg-primary/8 text-primary">
+                  <Compass className="size-7" />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground">
+                    Try one of these paths
+                  </h2>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    The utility pages, dashboard, and conversations surface all
+                    share the same navigation system now. These routes will get
+                    you moving again.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-8 space-y-3">
+                <div className="rounded-[1.5rem] border border-border/80 bg-card/90 p-4">
+                  <div className="flex items-start gap-3">
+                    <Home className="mt-0.5 size-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        Dashboard
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                        Review workspace analytics, total message volume, and
+                        phone number inventory.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[1.5rem] border border-border/80 bg-card/90 p-4">
+                  <div className="flex items-start gap-3">
+                    <Search className="mt-0.5 size-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        Conversations
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                        Jump into active threads, older messages, and sent media
+                        without leaving the workspace.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-
-          <p className="text-center text-xs text-neutral-400 pt-6">
-            Need help? Try navigating from the homepage or contact support if
-            the problem persists.
-          </p>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

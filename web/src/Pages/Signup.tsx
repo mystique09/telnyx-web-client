@@ -1,32 +1,24 @@
 "use client";
 
+import { AuthShell } from "@/components/auth-shell";
+import { PasswordField } from "@/components/password-field";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useFlash } from "@/hooks/use-flash";
+import type { PropsWithFlash } from "@/lib/types";
 import { Link, useForm } from "@inertiajs/react";
-import {
-  AlertCircle,
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-  ShieldCheck,
-} from "lucide-react";
+import { AlertCircle, Mail, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 
-interface SignupPageProps {
+interface SignupPageProps extends PropsWithFlash {
   errors?: {
     email?: string;
     password?: string;
     general?: string;
   };
+  adminAlreadyExists?: boolean;
 }
 
 // Client-side validation schema with user-friendly messages
@@ -51,12 +43,16 @@ const signupSchema = z
 
 type SignupFormValues = z.infer<typeof signupSchema>;
 
-function Signup({ errors }: SignupPageProps) {
-  const [showPassword, setShowPassword] = useState(false);
+function Signup({
+  errors,
+  flash,
+  adminAlreadyExists = false,
+}: SignupPageProps) {
+  useFlash(flash);
+
   const [clientErrors, setClientErrors] = useState<
     Partial<Record<keyof SignupFormValues, string>>
   >({});
-  const [isAdminSetup] = useState(true);
 
   const { data, setData, post, processing } = useForm<SignupFormValues>({
     email: "",
@@ -90,83 +86,75 @@ function Signup({ errors }: SignupPageProps) {
   const confirmPasswordError = clientErrors.password_confirmation;
   const generalError = errors?.general;
 
-  if (!isAdminSetup) {
+  if (adminAlreadyExists) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 p-4">
-        <Card className="w-full max-w-md shadow-lg">
-          <CardHeader>
-            <div className="flex flex-col items-center space-y-2">
-              <div className="rounded-full bg-yellow-100 p-3">
-                <ShieldCheck className="h-8 w-8 text-yellow-600" />
-              </div>
-              <CardTitle className="text-2xl font-bold">
-                Admin Already Exists
-              </CardTitle>
-              <CardDescription className="text-center">
-                An administrator account has already been created. Please log in
-                with your existing credentials.
-              </CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Link href="/auth/login" className="block">
-              <Button className="w-full">Go to Login</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+      <AuthShell
+        eyebrow="Admin status"
+        title="Admin access is already configured"
+        description="This environment already has an administrator account. Sign in with existing credentials to continue."
+        supportingTitle="The workspace is already claimed."
+        supportingDescription="Admin creation is intended as a one-time bootstrap step before operators move into live messaging work."
+      >
+        <div className="space-y-6">
+          <Alert className="rounded-[1.5rem] border-border/80 bg-muted/35">
+            <ShieldCheck className="size-4" />
+            <AlertTitle>Setup complete</AlertTitle>
+            <AlertDescription>
+              Use the existing admin account to manage phone numbers,
+              conversations, and delivery operations.
+            </AlertDescription>
+          </Alert>
+
+          <Button asChild className="h-12 w-full rounded-2xl text-base">
+            <Link href="/auth/login">Go to login</Link>
+          </Button>
+        </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-1">
-          <div className="flex flex-col items-center space-y-2">
-            <div className="rounded-full bg-blue-100 p-3">
-              <ShieldCheck className="h-8 w-8 text-blue-600" />
-            </div>
-            <CardTitle className="text-2xl font-bold">
-              Create Admin Account
-            </CardTitle>
-            <CardDescription className="text-center">
-              This is a one-time setup to create the administrator account. All
-              other users will be created by the admin.
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-3">
-            <div className="flex items-start space-x-2">
-              <AlertCircle className="h-4 w-4 shrink-0 text-yellow-600 mt-0.5" />
-              <div className="text-sm text-yellow-800">
-                <p className="font-semibold">Important:</p>
-                <p>
-                  This page will be hidden after the admin account is created.
-                  Make sure to remember your credentials.
-                </p>
-              </div>
-            </div>
-          </div>
+    <AuthShell
+      eyebrow="Initial setup"
+      title="Create the first admin account"
+      description="This account becomes the administrative entry point for the workspace and can provision the rest of the operator workflow."
+      supportingTitle="Bootstrap the workspace with one durable admin identity."
+      supportingDescription="Create the initial administrator account, then return here only for sign-in and password recovery."
+    >
+      <div className="space-y-6">
+        <Alert className="rounded-[1.5rem] border-amber-200/70 bg-amber-50/80">
+          <AlertCircle className="size-4 text-amber-700" />
+          <AlertTitle className="text-amber-900">One-time admin step</AlertTitle>
+          <AlertDescription className="text-amber-900/80">
+            Once the first admin account exists, this setup flow should no
+            longer be part of the normal operator path. Keep these credentials
+            secure.
+          </AlertDescription>
+        </Alert>
 
           {generalError && (
-            <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">
-              {generalError}
-            </div>
+          <Alert
+            variant="destructive"
+            className="rounded-[1.5rem] border-destructive/30 bg-destructive/5"
+          >
+            <AlertCircle className="size-4" />
+            <AlertTitle>Unable to create admin</AlertTitle>
+            <AlertDescription>{generalError}</AlertDescription>
+          </Alert>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="mb-2 block text-sm font-medium">
-                Email
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <label htmlFor="email" className="text-sm font-medium">
+              Admin email
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Mail className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="admin@example.com"
-                  className="pl-10"
+                className="h-12 rounded-2xl border-border/80 bg-background/80 pl-11"
                   value={data.email}
                   onChange={(e) => {
                     setData("email", e.target.value);
@@ -179,24 +167,18 @@ function Signup({ errors }: SignupPageProps) {
                 />
               </div>
               {emailError && (
-                <p className="mt-1 text-sm text-red-600">{emailError}</p>
+              <p className="text-sm text-destructive">{emailError}</p>
               )}
             </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-2 block text-sm font-medium"
-              >
-                Password
+          <div className="space-y-2">
+            <label htmlFor="password" className="text-sm font-medium">
+              Password
               </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
+            <PasswordField
                   id="password"
-                  type={showPassword ? "text" : "password"}
                   placeholder="Create a strong password"
-                  className="pl-10 pr-10"
+              className="h-12 rounded-2xl border-border/80 bg-background/80"
                   value={data.password}
                   onChange={(e) => {
                     setData("password", e.target.value);
@@ -206,38 +188,20 @@ function Signup({ errors }: SignupPageProps) {
                         password: undefined,
                       }));
                   }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 focus:outline-none"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
+            />
               {passwordError && (
-                <p className="mt-1 text-sm text-red-600">{passwordError}</p>
+              <p className="text-sm text-destructive">{passwordError}</p>
               )}
             </div>
 
-            <div>
-              <label
-                htmlFor="password_confirmation"
-                className="mb-2 block text-sm font-medium"
-              >
-                Confirm Password
+          <div className="space-y-2">
+            <label htmlFor="password_confirmation" className="text-sm font-medium">
+              Confirm password
               </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
+            <PasswordField
                   id="password_confirmation"
-                  type={showPassword ? "text" : "password"}
                   placeholder="Confirm your password"
-                  className="pl-10"
+              className="h-12 rounded-2xl border-border/80 bg-background/80"
                   value={data.password_confirmation}
                   onChange={(e) => {
                     setData("password_confirmation", e.target.value);
@@ -247,22 +211,42 @@ function Signup({ errors }: SignupPageProps) {
                         password_confirmation: undefined,
                       }));
                   }}
-                />
-              </div>
+            />
               {confirmPasswordError && (
-                <p className="mt-1 text-sm text-red-600">
+              <p className="text-sm text-destructive">
                   {confirmPasswordError}
                 </p>
               )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={processing}>
+          <div className="rounded-[1.5rem] border border-border/80 bg-muted/35 p-4">
+            <p className="text-sm font-medium text-foreground">Password rules</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Use at least eight characters, including an uppercase letter, a
+              lowercase letter, and a number.
+            </p>
+          </div>
+
+          <Button
+            type="submit"
+            className="h-12 w-full rounded-2xl text-base"
+            disabled={processing}
+          >
               {processing ? "Creating account..." : "Create Admin Account"}
             </Button>
           </form>
-        </CardContent>
-      </Card>
-    </div>
+
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <p className="text-muted-foreground">Already have access?</p>
+          <Link
+            href="/auth/login"
+            className="font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+          >
+            Back to login
+          </Link>
+        </div>
+      </div>
+    </AuthShell>
   );
 }
 

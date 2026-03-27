@@ -1,19 +1,14 @@
 "use client";
 
+import { AuthShell } from "@/components/auth-shell";
+import { PasswordField } from "@/components/password-field";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useFlash } from "@/hooks/use-flash";
 import type { PropsWithFlash } from "@/lib/types";
 import { Link, useForm } from "@inertiajs/react";
-import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { AlertCircle, Mail } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 
@@ -37,7 +32,6 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 function Login({ errors, flash }: LoginPageProps) {
   useFlash(flash);
 
-  const [showPassword, setShowPassword] = useState(false);
   const [clientErrors, setClientErrors] = useState<
     Partial<Record<keyof LoginFormValues, string>>
   >({});
@@ -70,32 +64,36 @@ function Login({ errors, flash }: LoginPageProps) {
   const generalError = errors?.general;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-          <CardDescription>
-            Enter your email and password to sign in to your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <AuthShell
+      eyebrow="Secure access"
+      title="Sign in to your operator workspace"
+      description="Use your admin credentials to manage routing, monitor live threads, and keep the Telnyx workspace in sync."
+      supportingTitle="One control room for every active message."
+      supportingDescription="The web client keeps analytics, phone number inventory, and conversation response work inside the same authenticated surface."
+    >
+      <div className="space-y-6">
           {generalError && (
-            <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">
-              {generalError}
-            </div>
+          <Alert
+            variant="destructive"
+            className="rounded-[1.5rem] border-destructive/30 bg-destructive/5"
+          >
+            <AlertCircle className="size-4" />
+            <AlertTitle>Unable to sign in</AlertTitle>
+            <AlertDescription>{generalError}</AlertDescription>
+          </Alert>
           )}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="mb-2 block text-sm font-medium">
-                Email
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <label htmlFor="email" className="text-sm font-medium">
+              Email address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Mail className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="name@example.com"
-                  className="pl-10"
+                className="h-12 rounded-2xl border-border/80 bg-background/80 pl-11"
                   value={data.email}
                   onChange={(e) => {
                     setData("email", e.target.value);
@@ -108,24 +106,26 @@ function Login({ errors, flash }: LoginPageProps) {
                 />
               </div>
               {emailError && (
-                <p className="mt-1 text-sm text-red-600">{emailError}</p>
+              <p className="text-sm text-destructive">{emailError}</p>
               )}
             </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-2 block text-sm font-medium"
-              >
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <label htmlFor="password" className="text-sm font-medium">
                 Password
               </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
+              <Link
+                href="/auth/forgot-password"
+                className="text-sm font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
+            <PasswordField
                   id="password"
-                  type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
-                  className="pl-10 pr-10"
+              className="h-12 rounded-2xl border-border/80 bg-background/80"
                   value={data.password}
                   onChange={(e) => {
                     setData("password", e.target.value);
@@ -135,42 +135,32 @@ function Login({ errors, flash }: LoginPageProps) {
                         password: undefined,
                       }));
                   }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 focus:outline-none"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
+            />
               {passwordError && (
-                <p className="mt-1 text-sm text-red-600">{passwordError}</p>
+              <p className="text-sm text-destructive">{passwordError}</p>
               )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={processing}>
+          <Button
+            type="submit"
+            className="h-12 w-full rounded-2xl text-base"
+            disabled={processing}
+          >
               {processing ? "Signing in..." : "Sign in"}
             </Button>
           </form>
-        </CardContent>
-        <CardFooter>
-          <div className="text-sm text-gray-500">
-            <Link
-              type="button"
-              href="/auth/forgot-password"
-              className="font-medium text-gray-900 underline underline-offset-4 hover:text-gray-700"
-            >
-              Forgot your password?
-            </Link>
-          </div>
-        </CardFooter>
-      </Card>
-    </div>
+
+        <div className="rounded-[1.5rem] border border-border/80 bg-muted/35 p-4">
+          <p className="text-sm font-medium text-foreground">
+            Reserved for authenticated workspace operators.
+          </p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            Signing in restores access to analytics, conversation history, and
+            live delivery updates without leaving the same workspace.
+          </p>
+        </div>
+      </div>
+    </AuthShell>
   );
 }
 

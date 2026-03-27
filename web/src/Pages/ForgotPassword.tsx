@@ -1,15 +1,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { AuthShell } from "@/components/auth-shell";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -41,33 +34,29 @@ function ForgotPassword() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">
-            Forgot your password?
-          </CardTitle>
-          <CardDescription>
-            Enter your email address and we'll send you a link to reset your
-            password.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <AuthShell
+      eyebrow="Recovery"
+      title="Request a password reset"
+      description="Enter the admin email attached to this workspace and we’ll start the reset flow."
+      supportingTitle="Keep account recovery calm and unmistakable."
+      supportingDescription="Recovery should be short, explicit, and secure so operators can get back into the workspace quickly."
+    >
+      <div className="space-y-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               <FormField
                 control={form.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Email address</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Mail className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                           placeholder="name@example.com"
                           type="email"
-                          className="pl-10"
+                        className="h-12 rounded-2xl border-border/80 bg-background/80 pl-11"
                           {...field}
                         />
                       </div>
@@ -79,7 +68,7 @@ function ForgotPassword() {
 
               <Button
                 type="submit"
-                className="w-full"
+              className="h-12 w-full rounded-2xl text-base"
                 disabled={form.formState.isSubmitting}
               >
                 {form.formState.isSubmitting
@@ -88,18 +77,27 @@ function ForgotPassword() {
               </Button>
             </form>
           </Form>
-        </CardContent>
-        <CardFooter>
-          <Link
-            href="/auth/login"
-            className="bg-transparent text-black px-0 py-0 hover:bg-transparent gap-2 flex items-center font-medium"
-          >
-            <ArrowLeft className="h-4 w-4" />
+
+        <div className="rounded-[1.5rem] border border-border/80 bg-muted/35 p-4">
+          <p className="text-sm font-medium text-foreground">Before you send</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            Use the admin email for this workspace. Reset links should only be
+            requested from a trusted environment.
+          </p>
+        </div>
+
+        <Button
+          asChild
+          variant="ghost"
+          className="h-11 justify-start rounded-2xl px-3 text-foreground"
+        >
+          <Link href="/auth/login" className="flex items-center gap-2">
+            <ArrowLeft className="size-4" />
             Back to login
           </Link>
-        </CardFooter>
-      </Card>
-    </div>
+        </Button>
+      </div>
+    </AuthShell>
   );
 }
 
