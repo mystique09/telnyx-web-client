@@ -18,7 +18,7 @@ pub async fn handle_delete_conversation(
     let conversation_id = path.into_inner();
 
     let Some(user_id) = session_user_id(&session) else {
-        return HttpResponse::Found()
+        return HttpResponse::SeeOther()
             .append_header((LOCATION, "/auth/login"))
             .finish();
     };
@@ -34,7 +34,7 @@ pub async fn handle_delete_conversation(
         Ok(_) => {
             if req.headers().contains_key("x-inertia") {
                 set_flash(&session, FlashProps::success("Conversation deleted."));
-                return HttpResponse::Found()
+                return HttpResponse::SeeOther()
                     .append_header((LOCATION, "/conversations"))
                     .finish();
             }
@@ -44,7 +44,7 @@ pub async fn handle_delete_conversation(
         Err(UsecaseError::EntityNotFound) => {
             if req.headers().contains_key("x-inertia") {
                 set_flash(&session, FlashProps::error("Conversation not found."));
-                return HttpResponse::Found()
+                return HttpResponse::SeeOther()
                     .append_header((LOCATION, "/conversations"))
                     .finish();
             }
