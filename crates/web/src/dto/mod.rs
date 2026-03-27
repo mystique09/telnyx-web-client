@@ -14,7 +14,7 @@ pub use auth::{
 };
 pub use conversation::{
     ConversationProps, CreateConversationRequest, CreateConversationResponse, CreateMessageRequest,
-    CreateMessageResponse, MessageEventProps, MessageProps,
+    CreateMessageResponse, MessageEventProps, MessageProps, MessagesPageResponse,
 };
 pub use dashboard::DashboardAnalyticsProps;
 pub use flash::FlashProps;

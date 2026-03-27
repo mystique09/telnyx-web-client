@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::usecases::UsecaseError;
-use domain::{models::message::Message, repositories::message_repository::MessageRepository};
+use domain::repositories::message_repository::{MessagePage, MessageRepository};
 
 #[derive(bon::Builder)]
 pub struct ListMessagesByConversationUsecase {
@@ -13,9 +13,11 @@ impl ListMessagesByConversationUsecase {
         &self,
         user_id: uuid::Uuid,
         conversation_id: uuid::Uuid,
-    ) -> Result<Vec<Message>, UsecaseError> {
+        cursor: Option<uuid::Uuid>,
+        limit: usize,
+    ) -> Result<MessagePage, UsecaseError> {
         self.message_repository
-            .list_by_conversation_id(&user_id, &conversation_id)
+            .list_page_by_conversation_id(&user_id, &conversation_id, cursor.as_ref(), limit)
             .await
             .map_err(Into::into)
     }

@@ -16,6 +16,7 @@ use tracing::error;
 use crate::{
     dto::{ConversationProps, FlashProps, MessageProps, PhoneNumberProps},
     flash::extract_flash,
+    handlers::conversations::MESSAGE_PAGE_SIZE,
     inertia::Page,
     session::session_user_id,
 };
@@ -27,6 +28,7 @@ struct ConversationPageProps {
     pub conversations: Vec<ConversationProps>,
     pub conversation: Option<ConversationProps>,
     pub messages: Vec<MessageProps>,
+    pub messages_next_cursor: Option<uuid::Uuid>,
     pub phone_numbers: Vec<PhoneNumberProps>,
 }
 
@@ -54,7 +56,8 @@ pub async fn render_get_conversation(
         .phone_number_repository(phone_number_repository.get_ref().clone())
         .build();
 
-    let (conversation, conversations, messages, phone_numbers) = match session_user_id(&session) {
+    let (conversation, conversations, messages, messages_next_cursor, phone_numbers) =
+        match session_user_id(&session) {
         Some(user_id) => {
             let conversation = match get_conversation_usecase
                 .execute(user_id, conversation_id)
@@ -73,20 +76,23 @@ pub async fn render_get_conversation(
 
             let messages = if conversation.is_some() {
                 match list_messages_by_conversation_usecase
-                    .execute(user_id, conversation_id)
+                    .execute(user_id, conversation_id, None, MESSAGE_PAGE_SIZE)
                     .await
                 {
-                    Ok(items) => items.iter().map(MessageProps::from).collect(),
+                    Ok(page) => (
+                        page.messages.iter().map(MessageProps::from).collect(),
+                        page.next_cursor,
+                    ),
                     Err(err) => {
                         error!(
                             "failed to list messages for conversation {} and user {}: {}",
                             conversation_id, user_id, err
                         );
-                        Vec::new()
+                        (Vec::new(), None)
                     }
                 }
             } else {
-                Vec::new()
+                (Vec::new(), None)
             };
 
             let conversations = match list_conversations_usecase.execute(user_id).await {
@@ -105,9 +111,15 @@ pub async fn render_get_conversation(
                 }
             };
 
-            (conversation, conversations, messages, phone_numbers)
+            (
+                conversation,
+                conversations,
+                messages.0,
+                messages.1,
+                phone_numbers,
+            )
         }
-        None => (None, Vec::new(), Vec::new(), Vec::new()),
+        None => (None, Vec::new(), Vec::new(), None, Vec::new()),
     };
 
     Page::builder()
@@ -118,6 +130,7 @@ pub async fn render_get_conversation(
             conversations,
             conversation,
             messages,
+            messages_next_cursor,
             phone_numbers,
         })
         .build()

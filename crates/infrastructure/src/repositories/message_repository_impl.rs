@@ -2,13 +2,13 @@ use std::sync::Arc;
 
 use domain::models::message::Message;
 use domain::repositories::RepositoryError;
-use domain::repositories::message_repository::MessageRepository;
+use domain::repositories::message_repository::{MessagePage, MessageRepository};
 
 use rbatis::{RBatis, async_trait};
 use rbs::value;
 
 use crate::database;
-use crate::database::models::UuidExt;
+use crate::database::models::{MessageSql, RdbcUuidExt, UuidExt};
 use crate::repositories::RbsErrorExt;
 
 #[derive(Debug, bon::Builder)]
@@ -21,62 +21,8 @@ impl MessageRepository for MessageRepositoryImpl {
     async fn create_message(&self, message: &Message) -> Result<Message, RepositoryError> {
         let new_message_db = database::models::message::Message::from(message);
         let created_message = Message::from(&new_message_db);
-        let sql = r#"
-            INSERT INTO messages (
-                id,
-                conversation_id,
-                user_id,
-                message_type,
-                status,
-                provider_message_id,
-                provider_status,
-                provider_status_updated_at,
-                provider_error_code,
-                provider_error_detail,
-                from_number,
-                content,
-                created_at,
-                updated_at
-            )
-            VALUES (
-                ?,
-                ?,
-                ?,
-                CAST(? AS message_type),
-                CAST(? AS message_status),
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?
-            )
-        "#;
 
-        self.pool
-            .as_ref()
-            .exec(
-                sql,
-                vec![
-                    value!(new_message_db.id.clone()),
-                    value!(new_message_db.conversation_id.clone()),
-                    value!(new_message_db.user_id.clone()),
-                    value!(new_message_db.message_type.clone()),
-                    value!(new_message_db.status.clone()),
-                    value!(new_message_db.provider_message_id.clone()),
-                    value!(new_message_db.provider_status.clone()),
-                    value!(new_message_db.provider_status_updated_at.clone()),
-                    value!(new_message_db.provider_error_code.clone()),
-                    value!(new_message_db.provider_error_detail.clone()),
-                    value!(new_message_db.from_number.clone()),
-                    value!(new_message_db.content.clone()),
-                    value!(new_message_db.created_at.clone()),
-                    value!(new_message_db.updated_at.clone()),
-                ],
-            )
+        MessageSql::insert_message(self.pool.as_ref(), &new_message_db)
             .await
             .map_err(|e| e.to_repository_error())?;
 
@@ -136,6 +82,71 @@ impl MessageRepository for MessageRepositoryImpl {
         Ok(messages)
     }
 
+    async fn list_page_by_conversation_id(
+        &self,
+        user_id: &uuid::Uuid,
+        conversation_id: &uuid::Uuid,
+        cursor: Option<&uuid::Uuid>,
+        limit: usize,
+    ) -> Result<MessagePage, RepositoryError> {
+        let page_size = limit.max(1);
+        let query_limit = (page_size + 1) as i64;
+        let user_id_db = user_id.into_db();
+        let conversation_id_db = conversation_id.into_db();
+
+        let (cursor_created_at, cursor_id_db) = if let Some(cursor_id) = cursor {
+            let cursor_row = MessageSql::select_cursor_row(
+                self.pool.as_ref(),
+                cursor_id.into_db(),
+                conversation_id_db.clone(),
+                user_id_db.clone(),
+            )
+                .await
+                .map_err(|e| e.to_repository_error())?
+                .into_iter()
+                .next()
+                .ok_or(RepositoryError::NotFound)?;
+
+            (Some(cursor_row.created_at), Some(cursor_row.id))
+        } else {
+            (None, None)
+        };
+        let records = MessageSql::select_message_page(
+            self.pool.as_ref(),
+            conversation_id_db,
+            user_id_db,
+            cursor_created_at,
+            cursor_id_db,
+            query_limit,
+        )
+        .await
+        .map_err(|e| e.to_repository_error())?;
+
+        let has_more = records.len() > page_size;
+        let records = if has_more {
+            records.into_iter().take(page_size).collect::<Vec<_>>()
+        } else {
+            records
+        };
+        let next_cursor = if has_more {
+            records.last().map(|record| record.id.into_domain())
+        } else {
+            None
+        };
+
+        let mut messages = records.iter().map(Message::from).collect::<Vec<_>>();
+        messages.sort_by(|a, b| {
+            a.created_at
+                .cmp(&b.created_at)
+                .then_with(|| a.id.cmp(&b.id))
+        });
+
+        Ok(MessagePage {
+            messages,
+            next_cursor,
+        })
+    }
+
     async fn update_message(&self, message: &Message) -> Result<Message, RepositoryError> {
         let existing = database::models::message::Message::select_by_map(
             self.pool.as_ref(),
@@ -149,47 +160,8 @@ impl MessageRepository for MessageRepositoryImpl {
         }
 
         let updated_message_db = database::models::message::Message::from(message);
-        let sql = r#"
-            UPDATE messages
-            SET
-                conversation_id = ?,
-                user_id = ?,
-                message_type = CAST(? AS message_type),
-                status = CAST(? AS message_status),
-                provider_message_id = ?,
-                provider_status = ?,
-                provider_status_updated_at = ?,
-                provider_error_code = ?,
-                provider_error_detail = ?,
-                from_number = ?,
-                content = ?,
-                created_at = ?,
-                updated_at = ?
-            WHERE id = ? AND user_id = ?
-        "#;
 
-        self.pool
-            .as_ref()
-            .exec(
-                sql,
-                vec![
-                    value!(updated_message_db.conversation_id.clone()),
-                    value!(updated_message_db.user_id.clone()),
-                    value!(updated_message_db.message_type.clone()),
-                    value!(updated_message_db.status.clone()),
-                    value!(updated_message_db.provider_message_id.clone()),
-                    value!(updated_message_db.provider_status.clone()),
-                    value!(updated_message_db.provider_status_updated_at.clone()),
-                    value!(updated_message_db.provider_error_code.clone()),
-                    value!(updated_message_db.provider_error_detail.clone()),
-                    value!(updated_message_db.from_number.clone()),
-                    value!(updated_message_db.content.clone()),
-                    value!(updated_message_db.created_at.clone()),
-                    value!(updated_message_db.updated_at.clone()),
-                    value!(updated_message_db.id.clone()),
-                    value!(updated_message_db.user_id.clone()),
-                ],
-            )
+        MessageSql::update_message(self.pool.as_ref(), &updated_message_db)
             .await
             .map_err(|e| e.to_repository_error())?;
 

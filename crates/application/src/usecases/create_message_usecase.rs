@@ -102,7 +102,8 @@ mod tests {
         },
         repositories::{
             RepositoryError, conversation_repository::ConversationRepository,
-            message_repository::MessageRepository, phone_number_repository::PhoneNumberRepository,
+            message_repository::{MessagePage, MessageRepository},
+            phone_number_repository::PhoneNumberRepository,
         },
         traits::outbound_message_service::{
             OutboundMessageError, OutboundMessageService, SendMessageRequest, SendMessageResponse,
@@ -203,6 +204,19 @@ mod tests {
             _conversation_id: &uuid::Uuid,
         ) -> Result<Vec<Message>, RepositoryError> {
             Ok(Vec::new())
+        }
+
+        async fn list_page_by_conversation_id(
+            &self,
+            _user_id: &uuid::Uuid,
+            _conversation_id: &uuid::Uuid,
+            _cursor: Option<&uuid::Uuid>,
+            _limit: usize,
+        ) -> Result<MessagePage, RepositoryError> {
+            Ok(MessagePage {
+                messages: Vec::new(),
+                next_cursor: None,
+            })
         }
 
         async fn update_message(&self, message: &Message) -> Result<Message, RepositoryError> {

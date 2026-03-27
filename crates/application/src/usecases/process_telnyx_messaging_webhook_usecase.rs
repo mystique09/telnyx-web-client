@@ -380,7 +380,8 @@ mod tests {
         },
         repositories::{
             RepositoryError, conversation_repository::ConversationRepository,
-            message_repository::MessageRepository, phone_number_repository::PhoneNumberRepository,
+            message_repository::{MessagePage, MessageRepository},
+            phone_number_repository::PhoneNumberRepository,
             processed_webhook_event_repository::ProcessedWebhookEventRepository,
         },
     };
@@ -539,6 +540,61 @@ mod tests {
                 .filter(|message| message.conversation_id == *conversation_id)
                 .cloned()
                 .collect())
+        }
+
+        async fn list_page_by_conversation_id(
+            &self,
+            _user_id: &uuid::Uuid,
+            conversation_id: &uuid::Uuid,
+            cursor: Option<&uuid::Uuid>,
+            limit: usize,
+        ) -> Result<MessagePage, RepositoryError> {
+            let mut messages = self
+                .messages
+                .lock()
+                .expect("lock")
+                .values()
+                .filter(|message| message.conversation_id == *conversation_id)
+                .cloned()
+                .collect::<Vec<_>>();
+            messages.sort_by(|a, b| {
+                b.created_at
+                    .cmp(&a.created_at)
+                    .then_with(|| b.id.cmp(&a.id))
+            });
+
+            let start = if let Some(cursor_id) = cursor {
+                messages
+                    .iter()
+                    .position(|message| message.id == *cursor_id)
+                    .map(|index| index + 1)
+                    .ok_or(RepositoryError::NotFound)?
+            } else {
+                0
+            };
+            let page = messages.into_iter().skip(start).take(limit + 1).collect::<Vec<_>>();
+            let has_more = page.len() > limit;
+            let page = if has_more {
+                page.into_iter().take(limit).collect::<Vec<_>>()
+            } else {
+                page
+            };
+            let next_cursor = if has_more {
+                page.last().map(|message| message.id)
+            } else {
+                None
+            };
+            let mut ordered = page;
+            ordered.sort_by(|a, b| {
+                a.created_at
+                    .cmp(&b.created_at)
+                    .then_with(|| a.id.cmp(&b.id))
+            });
+
+            Ok(MessagePage {
+                messages: ordered,
+                next_cursor,
+            })
         }
 
         async fn update_message(&self, message: &Message) -> Result<Message, RepositoryError> {

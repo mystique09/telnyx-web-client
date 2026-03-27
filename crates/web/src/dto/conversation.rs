@@ -24,6 +24,13 @@ pub struct CreateMessageResponse {
     pub message: MessageProps,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MessagesPageResponse {
+    pub messages: Vec<MessageProps>,
+    pub next_cursor: Option<uuid::Uuid>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MessageEventProps {
