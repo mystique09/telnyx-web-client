@@ -11,14 +11,15 @@ import {
 import { toast } from "sonner";
 
 import {
+  PAGE_SIZE,
   compareMessagesAsc,
-  paginateMessages,
 } from "../utils/message-utils";
 import type {
   Conversation,
   ConversationsPageProps,
   Message,
   MessageRecord,
+  MessagesPageResponse,
   MessageWindow,
   PhoneNumber,
   RealtimeMessageEvent,
@@ -31,6 +32,7 @@ const E164_PHONE_PATTERN = /^\+?[1-9]\d{6,14}$/;
 type ConversationRecordFromProps = NonNullable<
   ConversationsPageProps["conversations"]
 >[number];
+type ErrorResponse = { error?: string };
 
 function mapMessageRecord(record: MessageRecord): Message {
   return {
@@ -73,11 +75,22 @@ function upsertMessages(messages: Message[], incomingMessage: Message): Message[
   return [...nextMessages].sort(compareMessagesAsc);
 }
 
+function mergeMessagePage(messages: Message[], incomingMessages: Message[]): Message[] {
+  return incomingMessages.reduce(
+    (nextMessages, incomingMessage) =>
+      upsertMessages(nextMessages, incomingMessage),
+    messages,
+  );
+}
+
 export function useConversationsController() {
   const { post: postLogout, processing: isLoggingOut } = useForm({});
   const { props, url } = usePage<ConversationsPageProps>();
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [deletingConversationId, setDeletingConversationId] = useState<
+    string | null
+  >(null);
 
   const phoneNumbers = useMemo<PhoneNumber[]>(
     () => (props.phoneNumbers ?? []).map((item) => ({ ...item })),
@@ -237,12 +250,19 @@ export function useConversationsController() {
     );
   }, [phoneNumbers, selectedConversation]);
 
+  const selectedWindow = selectedConversationId
+    ? messageWindows[selectedConversationId]
+    : undefined;
+
   const sentMedia = useMemo<SentMediaItem[]>(() => {
-    if (!selectedConversation) {
+    const loadedMessages = selectedWindow
+      ? selectedWindow.messages
+      : selectedConversation?.messages ?? [];
+    if (loadedMessages.length === 0) {
       return [];
     }
 
-    return selectedConversation.messages
+    return loadedMessages
       .filter(
         (message) =>
           message.messageType === "OUTBOUND" &&
@@ -257,53 +277,111 @@ export function useConversationsController() {
         })),
       )
       .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime());
-  }, [selectedConversation]);
-
-  const selectedWindow = selectedConversationId
-    ? messageWindows[selectedConversationId]
-    : undefined;
+  }, [selectedConversation, selectedWindow]);
 
   const fallbackMessageWindow = useMemo(() => {
     if (!selectedConversation) {
       return null;
     }
 
-    const { page, nextCursor } = paginateMessages(selectedConversation.messages);
-    return { messages: page, nextCursor };
-  }, [selectedConversation]);
+    return {
+      messages: selectedConversation.messages,
+      nextCursor: props.messagesNextCursor ?? null,
+    };
+  }, [props.messagesNextCursor, selectedConversation]);
 
-  const visibleMessages = selectedWindow?.messages ?? fallbackMessageWindow?.messages ?? [];
-  const nextCursor = selectedWindow?.nextCursor ?? fallbackMessageWindow?.nextCursor ?? null;
+  const visibleMessages = selectedWindow
+    ? selectedWindow.messages
+    : fallbackMessageWindow?.messages ?? [];
+  const nextCursor = selectedWindow
+    ? selectedWindow.nextCursor
+    : fallbackMessageWindow?.nextCursor ?? null;
 
-  function loadOlderMessages() {
+  async function loadOlderMessages(): Promise<boolean> {
     if (!selectedConversationId || !nextCursor) {
-      return;
+      return false;
     }
 
-    const conversation = conversations.find((item) => item.id === selectedConversationId);
-    if (!conversation) {
-      return;
+    const currentWindowSnapshot = selectedWindow ?? fallbackMessageWindow;
+    if (!currentWindowSnapshot || !currentWindowSnapshot.nextCursor) {
+      return false;
     }
 
-    setMessageWindows((prev) => {
-      const currentWindow = prev[selectedConversationId] ?? fallbackMessageWindow;
-      if (!currentWindow || !currentWindow.nextCursor) {
-        return prev;
-      }
+    const activeConversationId = selectedConversationId;
 
-      const { page, nextCursor: cursor } = paginateMessages(
-        conversation.messages,
-        currentWindow.nextCursor,
+    try {
+      const searchParams = new URLSearchParams({
+        cursor: nextCursor,
+        limit: String(PAGE_SIZE),
+      });
+      const response = await fetch(
+        `/conversations/${encodeURIComponent(activeConversationId)}/messages?${searchParams.toString()}`,
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+          credentials: "same-origin",
+        },
       );
 
-      return {
-        ...prev,
-        [selectedConversationId]: {
-          messages: [...page, ...currentWindow.messages],
-          nextCursor: cursor,
-        },
-      };
-    });
+      if (!response.ok) {
+        let errorMessage = "Unable to load earlier messages right now.";
+        try {
+          const payload = (await response.json()) as ErrorResponse;
+          if (payload.error) {
+            errorMessage = payload.error;
+          }
+        } catch {
+          // Keep the fallback error message when the response body is not JSON.
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const payload = (await response.json()) as MessagesPageResponse;
+      const page = (payload.messages ?? []).map(mapMessageRecord);
+      const cursor = payload.nextCursor ?? null;
+
+      if (page.length === 0) {
+        startTransition(() => {
+          setMessageWindows((prev) => ({
+            ...prev,
+            [activeConversationId]: {
+              messages: currentWindowSnapshot.messages,
+              nextCursor: null,
+            },
+          }));
+        });
+        return false;
+      }
+
+      startTransition(() => {
+        setMessageWindows((prev) => {
+          const currentWindow = prev[activeConversationId] ?? currentWindowSnapshot;
+          if (!currentWindow) {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            [activeConversationId]: {
+              messages: mergeMessagePage(currentWindow.messages, page),
+              nextCursor: cursor,
+            },
+          };
+        });
+      });
+
+      return true;
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to load earlier messages right now.",
+      );
+      return false;
+    }
   }
 
   async function submitMessage() {
@@ -414,6 +492,23 @@ export function useConversationsController() {
     });
   }
 
+  function deleteConversation(conversationId: string) {
+    if (deletingConversationId) {
+      return;
+    }
+
+    setDeletingConversationId(conversationId);
+    router.delete(`/conversations/${encodeURIComponent(conversationId)}`, {
+      preserveScroll: true,
+      onError: () => {
+        toast.error("Unable to delete conversation right now.");
+      },
+      onFinish: () => {
+        setDeletingConversationId(null);
+      },
+    });
+  }
+
   function openCreateConversationDialog(open: boolean) {
     setIsCreateConversationDialogOpen(open);
 
@@ -472,6 +567,8 @@ export function useConversationsController() {
     sortedConversations,
     selectedConversationId,
     selectConversation,
+    deletingConversationId,
+    deleteConversation,
     isCreateConversationDialogOpen,
     openCreateConversationDialog,
     fromPhoneNumberId,

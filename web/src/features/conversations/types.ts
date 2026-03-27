@@ -76,6 +76,11 @@ export interface MessageWindow {
   nextCursor: string | null;
 }
 
+export interface MessagesPageResponse {
+  messages: MessageRecord[];
+  nextCursor?: string | null;
+}
+
 export type RealtimeMessageEventType = "message.created" | "message.updated";
 
 export interface RealtimeMessageEvent {
@@ -95,5 +100,6 @@ export interface ConversationsPageProps extends PropsWithFlash {
   conversations?: ConversationRecord[];
   conversation?: ConversationRecord | null;
   messages?: MessageRecord[];
+  messagesNextCursor?: string | null;
   phoneNumbers?: PhoneNumberRecord[];
 }
